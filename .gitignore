@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+.streamlit/
+*.joblib
+
+# Runtime pipeline outputs — keep directory placeholders only
+data/**
+!data/**/
+!data/**/.gitkeep
