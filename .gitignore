@@ -5,6 +5,7 @@ __pycache__/
 .DS_Store
 .streamlit/
 *.joblib
+.logs/
 
 # Runtime pipeline outputs — keep directory placeholders only
 data/**

@@ -18,10 +18,28 @@ No containers. Stages are separate Python modules that share folders under `data
 ## Setup
 
 ```bash
+make install
+```
+
+Or manually:
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+
+## Makefile shortcuts
+
+```bash
+make help          # list targets
+make test          # full pytest gate
+make run           # start all stages in background + dashboard
+make stop          # stop background pipeline
+make clean-data    # wipe runtime CSVs/checkpoints under data/
+```
+
+Foreground single stages: `make simulator`, `make preprocess`, `make train`, `make infer`, `make dashboard`.
 
 ## Testing gate (required after every stage)
 
