@@ -342,9 +342,113 @@ def build() -> Path:
       color: var(--accent);
       font-weight: 500;
     }}
+    .nav-burger {{
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 1002;
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }}
+    .nav-burger span {{
+      display: block;
+      width: 1.15rem;
+      height: 2px;
+      background: var(--text);
+      border-radius: 1px;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }}
+    body.nav-open .nav-burger span:nth-child(1) {{
+      transform: translateY(7px) rotate(45deg);
+    }}
+    body.nav-open .nav-burger span:nth-child(2) {{
+      opacity: 0;
+    }}
+    body.nav-open .nav-burger span:nth-child(3) {{
+      transform: translateY(-7px) rotate(-45deg);
+    }}
+    .nav-backdrop {{
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }}
+    body.nav-open .nav-backdrop {{
+      opacity: 1;
+      pointer-events: auto;
+    }}
+    .nav-drawer {{
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(20rem, 88vw);
+      height: 100%;
+      z-index: 1001;
+      background: #121a17;
+      border-left: 1px solid var(--border);
+      padding: 4.5rem 1.1rem 1.5rem;
+      transform: translateX(105%);
+      transition: transform 0.22s ease;
+      overflow-y: auto;
+    }}
+    body.nav-open .nav-drawer {{
+      transform: translateX(0);
+    }}
+    .nav-drawer h2 {{
+      margin: 0 0 0.85rem;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      font-weight: 500;
+    }}
+    .nav-drawer a {{
+      display: block;
+      padding: 0.65rem 0.75rem;
+      margin-bottom: 0.35rem;
+      border-radius: 8px;
+      color: var(--text);
+      text-decoration: none;
+      border: 1px solid transparent;
+      font-size: 0.92rem;
+    }}
+    .nav-drawer a:hover,
+    .nav-drawer a:focus-visible {{
+      background: rgba(61, 143, 118, 0.14);
+      border-color: rgba(61, 143, 118, 0.35);
+      outline: none;
+    }}
+    .nav-drawer a .nav-meta {{
+      display: block;
+      margin-top: 0.15rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }}
   </style>
 </head>
 <body>
+  <button class="nav-burger" type="button" id="nav-burger" aria-label="Open stages menu" aria-expanded="false" aria-controls="nav-drawer">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="nav-backdrop" id="nav-backdrop" hidden></div>
+  <nav class="nav-drawer" id="nav-drawer" aria-label="Stages">
+    <h2>JUMP TO STAGE</h2>
+    <div id="nav-links"></div>
+  </nav>
   <main>
     <div class="hero">
       <h1>DashBite</h1>
@@ -389,7 +493,7 @@ def build() -> Path:
 
     <div id="board"></div>
 
-    <section class="outro" aria-label="Take the workflow with you">
+    <section class="outro" id="outro" aria-label="Take the workflow with you">
       <h2>Take the workflow with you</h2>
       <p class="outro-flow">ARCHITECT → IMPLEMENTER → REVIEWER</p>
       <p>
@@ -459,9 +563,9 @@ def build() -> Path:
         </div>`;
     }}
 
-    function stageDetails(title, teach, innerHtml, open) {{
+    function stageDetails(title, teach, innerHtml, open, id) {{
       return `
-        <details class="stage" ${{open ? "open" : ""}}>
+        <details class="stage" id="${{id}}" ${{open ? "open" : ""}}>
           <summary>${{escapeHtml(title)}}</summary>
           <div class="stage-body">
             <p class="teach"><strong>Teach:</strong> ${{escapeHtml(teach)}}</p>
@@ -488,18 +592,75 @@ def build() -> Path:
       return `<div class="tabs">${{tabBtns}}</div>${{panels}}`;
     }}
 
+    function navEntries() {{
+      const entries = [
+        {{ id: "stage-base", label: "0′ — " + data.base.title, meta: data.base.teach }},
+      ];
+      for (const s of data.stages) {{
+        entries.push({{
+          id: "stage-" + s.number,
+          label: `Stage ${{s.number}} — ${{s.title}}`,
+          meta: s.teach,
+        }});
+      }}
+      if (data.wrap_up) {{
+        entries.push({{
+          id: "stage-wrap",
+          label: "7′ — " + data.wrap_up.title,
+          meta: data.wrap_up.teach,
+        }});
+      }}
+      entries.push({{
+        id: "outro",
+        label: "Take the workflow with you",
+        meta: "dev-cycle skill",
+      }});
+      return entries;
+    }}
+
+    function renderNav() {{
+      const root = document.getElementById("nav-links");
+      root.innerHTML = navEntries().map((e) =>
+        `<a href="#${{e.id}}" data-nav-target="${{e.id}}">${{escapeHtml(e.label)}}<span class="nav-meta">${{escapeHtml(e.meta)}}</span></a>`
+      ).join("");
+    }}
+
+    function setNavOpen(open) {{
+      document.body.classList.toggle("nav-open", open);
+      const burger = document.getElementById("nav-burger");
+      const backdrop = document.getElementById("nav-backdrop");
+      burger.setAttribute("aria-expanded", open ? "true" : "false");
+      burger.setAttribute("aria-label", open ? "Close stages menu" : "Open stages menu");
+      backdrop.hidden = !open;
+    }}
+
+    function jumpToStage(id) {{
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (el.tagName === "DETAILS") el.open = true;
+      el.scrollIntoView({{ behavior: "smooth", block: "start" }});
+      setNavOpen(false);
+    }}
+
     function render(openAll) {{
       const baseInner = promptBlock(
         "Room warm-up — diagram & mental model",
         data.base.plan
       );
-      let html = stageDetails("0′ — " + data.base.title, data.base.teach, baseInner, openAll);
+      let html = stageDetails(
+        "0′ — " + data.base.title,
+        data.base.teach,
+        baseInner,
+        openAll,
+        "stage-base"
+      );
       for (const s of data.stages) {{
         html += stageDetails(
           `Stage ${{s.number}} — ${{s.title}}`,
           s.teach,
           tabsFor(s),
-          openAll
+          openAll,
+          "stage-" + s.number
         );
       }}
       if (data.wrap_up) {{
@@ -507,7 +668,8 @@ def build() -> Path:
           "7′ — " + data.wrap_up.title,
           data.wrap_up.teach,
           promptBlock("End of demo — paste into a fresh chat", data.wrap_up.plan),
-          openAll
+          openAll,
+          "stage-wrap"
         );
       }}
       board.innerHTML = html;
@@ -527,6 +689,20 @@ def build() -> Path:
         }});
       }});
     }}
+
+    document.getElementById("nav-burger").addEventListener("click", () => {{
+      setNavOpen(!document.body.classList.contains("nav-open"));
+    }});
+    document.getElementById("nav-backdrop").addEventListener("click", () => setNavOpen(false));
+    document.getElementById("nav-links").addEventListener("click", (e) => {{
+      const link = e.target.closest("[data-nav-target]");
+      if (!link) return;
+      e.preventDefault();
+      jumpToStage(link.dataset.navTarget);
+    }});
+    document.addEventListener("keydown", (e) => {{
+      if (e.key === "Escape") setNavOpen(false);
+    }});
 
     document.addEventListener("click", async (e) => {{
       const btn = e.target.closest(".copy-btn");
@@ -548,7 +724,9 @@ def build() -> Path:
 
     const expandAll = document.getElementById("expand-all");
     expandAll.addEventListener("change", () => render(expandAll.checked));
+    renderNav();
     render(true);
+    setNavOpen(false);
   </script>
 </body>
 </html>

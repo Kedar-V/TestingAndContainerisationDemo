@@ -147,6 +147,24 @@ def main() -> None:
     )
     _inject_style()
 
+    nav_options = [
+        ("all", "All stages"),
+        ("base", f"0′ — {BASE_PLAN_TITLE}"),
+        *[ (f"stage-{s.number}", f"Stage {s.number} — {s.title}") for s in STAGES ],
+        ("wrap", f"7′ — {WRAP_UP_TITLE}"),
+        ("skill", "Take the workflow with you"),
+    ]
+    with st.sidebar:
+        st.markdown("### Stages")
+        st.caption("Open this panel from the ☰ control to jump around the board.")
+        focus = st.radio(
+            "Jump to",
+            options=[key for key, _ in nav_options],
+            format_func=lambda key: dict(nav_options)[key],
+            index=0,
+            label_visibility="collapsed",
+        )
+
     st.markdown(
         """
         <div class="dpb-hero">
@@ -199,30 +217,38 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    expand_all = st.toggle("Expand all stages", value=True)
+    show_all = focus == "all"
+    expand_all = st.toggle("Expand all stages", value=True) if show_all else True
 
-    with st.expander(f"0′ — {BASE_PLAN_TITLE}", expanded=expand_all):
-        st.markdown(
-            f'<p class="dpb-stage-meta"><strong>Teach:</strong> {BASE_PLAN_TEACH}</p>',
-            unsafe_allow_html=True,
-        )
-        st.caption("Room warm-up — diagram & mental model; click the copy icon")
-        st.code(BASE_PLAN, language="markdown")
+    def _show(key: str) -> bool:
+        return show_all or focus == key
+
+    if _show("base"):
+        with st.expander(f"0′ — {BASE_PLAN_TITLE}", expanded=expand_all or focus == "base"):
+            st.markdown(
+                f'<p class="dpb-stage-meta"><strong>Teach:</strong> {BASE_PLAN_TEACH}</p>',
+                unsafe_allow_html=True,
+            )
+            st.caption("Room warm-up — diagram & mental model; click the copy icon")
+            st.code(BASE_PLAN, language="markdown")
 
     for stage in STAGES:
+        key = f"stage-{stage.number}"
+        if not _show(key):
+            continue
         header = f"Stage {stage.number} — {stage.title}"
-        with st.expander(header, expanded=expand_all):
+        with st.expander(header, expanded=expand_all or focus == key):
             st.markdown(
                 f'<p class="dpb-stage-meta"><strong>Teach:</strong> {stage.teach}</p>',
                 unsafe_allow_html=True,
             )
 
             tabs = st.tabs([label for _, label, _ in PHASES])
-            for tab, (key, label, caption) in zip(tabs, PHASES):
+            for tab, (pkey, label, caption) in zip(tabs, PHASES):
                 with tab:
                     st.caption(f"{caption} — click the copy icon on the code block")
-                    st.code(_prompt_text(stage, key), language="markdown")
-                    if key == "execute":
+                    st.code(_prompt_text(stage, pkey), language="markdown")
+                    if pkey == "execute":
                         st.markdown(
                             '<p class="dpb-stage-meta" style="margin-top:0.75rem;">'
                             "<strong>Live with the class:</strong> "
@@ -231,19 +257,24 @@ def main() -> None:
                             unsafe_allow_html=True,
                         )
 
-    with st.expander(f"7′ — {WRAP_UP_TITLE}", expanded=expand_all):
-        st.markdown(
-            f'<p class="dpb-stage-meta"><strong>Teach:</strong> {WRAP_UP_TEACH}</p>',
-            unsafe_allow_html=True,
-        )
-        st.caption("End of demo — paste into a fresh chat; click the copy icon")
-        st.code(WRAP_UP_PROMPT, language="markdown")
+    if _show("wrap"):
+        with st.expander(
+            f"7′ — {WRAP_UP_TITLE}",
+            expanded=expand_all or focus == "wrap",
+        ):
+            st.markdown(
+                f'<p class="dpb-stage-meta"><strong>Teach:</strong> {WRAP_UP_TEACH}</p>',
+                unsafe_allow_html=True,
+            )
+            st.caption("End of demo — paste into a fresh chat; click the copy icon")
+            st.code(WRAP_UP_PROMPT, language="markdown")
 
-    st.divider()
-    st.markdown("## Take the workflow with you")
-    st.caption("ARCHITECT → IMPLEMENTER → REVIEWER")
-    st.markdown(
-        """
+    if _show("skill"):
+        st.divider()
+        st.markdown("## Take the workflow with you")
+        st.caption("ARCHITECT → IMPLEMENTER → REVIEWER")
+        st.markdown(
+            """
 The prompts above are intentionally explicit so we can see the workflow during the demo.
 In a real project, we don't want to rewrite this scaffolding every time.
 
@@ -252,29 +283,29 @@ Cursor Skills let us package the workflow once and reuse it across projects.
 Install the `dev-cycle` skill, then start three fresh chats for a feature
 (and run the Manual Smoke Test from `docs/plan.md` between Implement and Review):
 """
-    )
-    st.code(
-        "/dev-cycle architect Add caching to the API\n\n"
-        "/dev-cycle implement Add caching to the API\n\n"
-        "# then: run the Manual Smoke Test from docs/plan.md with the class\n\n"
-        "/dev-cycle review Add caching to the API",
-        language="text",
-    )
-    st.info(
-        "Each chat starts fresh. The repository, a single docs/plan.md (append-only stages, including Manual Smoke Test), "
-        "interfaces, and tests provide the shared context between agents."
-    )
-    st.markdown("### Create it once")
-    st.caption("Paste into Cursor — click the copy icon")
-    st.code(CREATE_SKILL_PROMPT, language="markdown")
-    st.markdown(
-        "Prefer a plain markdown file for Codex, Claude Code, or any agent? "
-        "See [`docs/dev-cycle.md`](../docs/dev-cycle.md)."
-    )
-    st.markdown(
-        "*Prompt engineering gets you through one task. "
-        "A skill turns the workflow into reusable engineering infrastructure.*"
-    )
+        )
+        st.code(
+            "/dev-cycle architect Add caching to the API\n\n"
+            "/dev-cycle implement Add caching to the API\n\n"
+            "# then: run the Manual Smoke Test from docs/plan.md with the class\n\n"
+            "/dev-cycle review Add caching to the API",
+            language="text",
+        )
+        st.info(
+            "Each chat starts fresh. The repository, a single docs/plan.md (append-only stages, including Manual Smoke Test), "
+            "interfaces, and tests provide the shared context between agents."
+        )
+        st.markdown("### Create it once")
+        st.caption("Paste into Cursor — click the copy icon")
+        st.code(CREATE_SKILL_PROMPT, language="markdown")
+        st.markdown(
+            "Prefer a plain markdown file for Codex, Claude Code, or any agent? "
+            "See [`docs/dev-cycle.md`](../docs/dev-cycle.md)."
+        )
+        st.markdown(
+            "*Prompt engineering gets you through one task. "
+            "A skill turns the workflow into reusable engineering infrastructure.*"
+        )
 
     st.divider()
     st.caption(
