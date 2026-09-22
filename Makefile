@@ -20,7 +20,7 @@ LOG_DIR := .logs
 PIDS    := $(LOG_DIR)/pids
 
 .PHONY: help install test test-unit test-regression test-integration \
-	simulator preprocess train infer dashboard \
+	simulator preprocess train infer dashboard prompts prompts-static \
 	run stop clean clean-data
 
 help:
@@ -36,6 +36,8 @@ help:
 	@echo "  make train                Run training loop (foreground)"
 	@echo "  make infer                Run inference loop (foreground)"
 	@echo "  make dashboard            Run Streamlit on :8501 (foreground)"
+	@echo "  make prompts              Agent Prompt Board on :8502 (Plan→Execute→Test)"
+	@echo "  make prompts-static       Rebuild docs/index.html for GitHub Pages"
 	@echo "  make run                  Start all stages in background + dashboard"
 	@echo "  make stop                 Stop background pipeline processes"
 	@echo "  make clean-data           Remove runtime files under data/ (keep .gitkeep)"
@@ -78,6 +80,13 @@ infer: install
 dashboard: install
 	PYTHONPATH=$(CURDIR) $(STREAMLIT) run pipeline/dashboard/app.py \
 		--server.headless true --server.port 8501
+
+prompts: install
+	PYTHONPATH=$(CURDIR) $(STREAMLIT) run pipeline/prompts/app.py \
+		--server.headless true --server.port 8502
+
+prompts-static: install
+	PYTHONPATH=$(CURDIR) $(PY) -m pipeline.prompts.build_static
 
 run: install stop
 	@mkdir -p $(LOG_DIR) $(PIDS)

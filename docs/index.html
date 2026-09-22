@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DashBite — Agent Prompt Board</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0e1117;
+      --surface: #1a2421;
+      --hero-a: #0f241f;
+      --hero-b: #1a3a32;
+      --hero-c: #243d28;
+      --border: #2d5a4e;
+      --accent: #3d8f76;
+      --text: #e8f2ee;
+      --muted: #b8c9c2;
+      --primary: #ff4b4b;
+      --code-bg: #0b0f0d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "DM Sans", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1.5rem 1.25rem 3rem;
+    }
+    .hero {
+      background: linear-gradient(135deg, var(--hero-a) 0%, var(--hero-b) 45%, var(--hero-c) 100%);
+      color: var(--text);
+      padding: 1.75rem;
+      border-radius: 12px;
+      margin-bottom: 1.25rem;
+      border: 1px solid var(--border);
+    }
+    .hero h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.85rem;
+      letter-spacing: -0.02em;
+    }
+    .hero p { margin: 0; opacity: 0.9; }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    .chip {
+      background: rgba(232, 242, 238, 0.12);
+      border: 1px solid rgba(232, 242, 238, 0.25);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+    }
+    .how {
+      background: rgba(61, 143, 118, 0.14);
+      border-left: 4px solid var(--accent);
+      padding: 0.85rem 1rem;
+      margin-bottom: 1.25rem;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.95rem;
+    }
+    .how code {
+      font-family: "IBM Plex Mono", monospace;
+      color: #9fdbc5;
+    }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .toolbar label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      color: var(--muted);
+    }
+    details.stage {
+      border: 1px solid rgba(61, 143, 118, 0.35);
+      border-radius: 10px;
+      margin-bottom: 0.75rem;
+      background: transparent;
+      overflow: hidden;
+    }
+    details.stage > summary {
+      cursor: pointer;
+      padding: 0.9rem 1rem;
+      font-weight: 600;
+      list-style: none;
+      background: var(--surface);
+    }
+    details.stage > summary::-webkit-details-marker { display: none; }
+    details.stage > summary::before {
+      content: "▸";
+      display: inline-block;
+      margin-right: 0.55rem;
+      color: var(--accent);
+      transition: transform 0.15s ease;
+    }
+    details.stage[open] > summary::before { transform: rotate(90deg); }
+    .stage-body { padding: 0.75rem 1rem 1.1rem; }
+    .teach {
+      color: var(--muted);
+      margin: 0 0 0.85rem;
+      font-size: 0.95rem;
+    }
+    .tabs {
+      display: flex;
+      gap: 0.25rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0.75rem;
+    }
+    .tab {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 0.55rem 0.9rem;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.95rem;
+      border-bottom: 2px solid transparent;
+    }
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .caption {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-bottom: 0.4rem;
+    }
+    .prompt-wrap {
+      position: relative;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 0.85rem 0.85rem;
+    }
+    .prompt-wrap pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: var(--text);
+    }
+    .copy-btn {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background: var(--hero-b);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.3rem 0.65rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .copy-btn:hover { background: var(--border); }
+    .copy-btn.copied { background: var(--accent); border-color: var(--accent); }
+    footer {
+      margin-top: 1.5rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="hero">
+      <h1>DashBite</h1>
+      <p>Agent Prompt Board — copy Plan → Execute → Test for each pipeline stage.
+        Build the late-delivery ML pipeline with the room, one stage at a time.</p>
+      <div class="chips">
+        <span class="chip">0 · BASE PLAN</span>
+        <span class="chip">1 · PLAN</span>
+        <span class="chip">2 · EXECUTE</span>
+        <span class="chip">3 · TEST</span>
+        <span class="chip">pytest gate</span>
+      </div>
+    </div>
+
+    <div class="how">
+      <strong>How to use in the demo:</strong>
+      Start with the <em>Base plan</em> (pipeline diagram) → agree the architecture with the room →
+      then for each stage: paste <em>Plan</em> → <em>Execute</em> → <em>Test</em> → wait for full
+      <code>pytest</code> green → next stage. Attendees copy the same prompts and build along.
+    </div>
+
+    <div class="toolbar">
+      <label><input type="checkbox" id="expand-all" checked /> Expand all stages</label>
+    </div>
+
+    <div id="board"></div>
+
+    <footer>
+      After every stage: run full <code>pytest</code> (unit + regression + integration).
+      Do not advance until green. Local Streamlit board: <code>make prompts</code> → :8502.
+    </footer>
+  </main>
+
+  <script type="application/json" id="prompt-data">{"base": {"title": "Base plan — Pipeline diagram", "teach": "Agree the modular layout with the room: stages, data folders, and train/infer isolation — before writing Stage 0.", "plan": "You are helping design DashBite — a late-delivery ML pipeline demo built one stage at a time with agents (plan → execute → test).\n\nBASE PLAN ONLY — do not write implementation code, create files, or start Stage 0 yet.\n\nGoal:\nProduce a short high-level plan whose centerpiece is an architecture diagram of the modular pipeline (file-based handoffs, no containers).\n\nUse case:\n- Predict whether a food-delivery order will be late (`was_late`: 0/1).\n- Raw fields (keep short): order_id, timestamp, distance_km, prep_minutes, order_value, was_late.\n\nDiagram requirements (Mermaid flowchart LR preferred):\nShow this flow (node names can match):\n  1_Simulator → data/raw → 2_Preprocess → data/features\n  data/features → 3_Train → data/models  (label: write checkpoint only)\n  data/features → 4_Infer\n  data/models → 4_Infer  (label: read newest checkpoint)\n  4_Infer → data/predictions\n  data/features → 5_6_Dashboards\n  data/predictions → 5_6_Dashboards\n\nTeaching points the plan must state clearly:\n1. Stages are separate Python modules/processes sharing folders under data/.\n2. Train and infer are independent — neither imports/calls the other; only coupling is data/models/.\n3. Train only writes checkpoints; infer only reads the newest checkpoint (skip if none).\n4. After every stage: unit + regression + integration tests; full pytest must be green before the next stage.\n5. Build order: Stage 0 skeleton → 1 simulator → 2 preprocess → 3 train → 4 infer → 5 ML dashboard → 6 business dashboard.\n\nConstraints:\n- No Docker, Kafka, Spark, MLflow, or drift libraries.\n- Keep the plan concise: diagram + bullets (stack, handoffs, what NOT to build yet).\n- Do not implement any stage in this response.\n\nOutput:\n1. Mermaid flowchart (or equivalent ASCII) matching the flow above\n2. A short bullet plan the room can agree on before Stage 0\n"}, "stages": [{"number": 0, "title": "Skeleton", "teach": "Project layout, shared config, and the pytest gate.", "plan": "You are helping build DashBite — a late-delivery ML pipeline demo — one stage at a time.\n\nSTAGE 0 — Skeleton (PLAN ONLY)\nDo not write implementation code yet. Produce a short plan for Stage 0 only.\n\nContext:\n- Use case: predict whether a food-delivery order will be late (`was_late`: 0/1).\n- Raw fields (keep short): order_id, timestamp, distance_km, prep_minutes, order_value, was_late.\n- No Docker/containers. Modular Python packages coupled via folders under data/.\n\nPlan must cover:\n1. Package layout: pipeline/ with config.py and paths.py; empty placeholders for later stages is fine.\n2. Data folders: data/raw, data/features, data/models, data/predictions, data/quality.\n3. Shared Config: TRAIN_EVERY_N_EVENTS (default 2000), BATCH_SIZE (default 50), overridable via env.\n4. Test harness: tests/unit, tests/regression, tests/integration, tests/fixtures + pytest markers.\n\nConstraints:\n- 1–2 features only for this stage.\n- Do not implement simulator, preprocess, train, infer, or dashboards.\n- End with: files to create, public APIs, and what NOT to touch.\n\nOutput: a concise bullet plan only.", "execute": "STAGE 0 — Skeleton (EXECUTE)\nImplement ONLY Stage 0 from the agreed plan. Do not implement later stages.\n\nRequirements:\n1. pipeline/config.py — frozen Config dataclass + load_config() from env\n   (TRAIN_EVERY_N_EVENTS default 2000, BATCH_SIZE default 50).\n2. pipeline/paths.py — helpers for data/raw, features, models, predictions, quality\n   and ensure_data_dirs().\n3. Create the data/ folder tree (gitkeep OK) and tests/unit|regression|integration|fixtures.\n4. Wire pytest.ini with unit/regression/integration markers.\n\nRules:\n- No simulator, preprocess, train, infer, or dashboard code.\n- Keep it tiny and importable: `from pipeline.config import load_config`.\n- Prefer matching the existing repo style if files already exist — fill gaps only.\n\nDone when Stage 0 modules import cleanly and the project skeleton is in place.", "test": "STAGE 0 — Skeleton (TEST)\nAdd the Stage 0 test gate, then run the full suite. Do not start Stage 1 until green.\n\nAdd:\n1. Unit: config loads TRAIN_EVERY_N_EVENTS; required data dir helpers resolve.\n2. Regression: default config values match a frozen expected dict.\n3. Integration: ensure_data_dirs works in a temp workspace.\n\nThen run: pytest\nMust pass all unit + regression + integration tests for stages completed so far (0).\n\nRules:\n- Keep each test tiny — one clear assertion story.\n- Do not implement Stage 1.\n- Stop and report when pytest is green."}, {"number": 1, "title": "Simulator", "teach": "Timed synthetic orders land in data/raw/ (“new orders arrived”).", "plan": "You are continuing DashBite Stage by Stage. Stage 0 is done.\n\nSTAGE 1 — Simulator / Intake (PLAN ONLY)\nDo not write implementation code yet. Produce a short plan for Stage 1 only.\n\nTeach goal: produce data on a schedule into a landing zone.\n\nPlan must cover:\n1. Every few seconds, write a batch CSV of synthetic orders to data/raw/.\n2. Columns: order_id, timestamp, distance_km, prep_minutes, order_value, was_late.\n3. Log line like “new orders arrived” (live feel) — no “batch” jargon in user-facing logs.\n4. Use shared Config for BATCH_SIZE and POLL_INTERVAL_SECONDS; optional CORRUPT_BATCH_RATE for bad rows later stages will clean.\n5. Runnable as: python -m pipeline.simulator\n\nConstraints:\n- 1–2 features only.\n- Do not implement preprocess, train, infer, or dashboards.\n- File-based handoff only under data/raw/.\n\nOutput: concise bullet plan — files, APIs, poll loop, and what NOT to touch.", "execute": "STAGE 1 — Simulator (EXECUTE)\nImplement ONLY Stage 1 from the agreed plan. Do not implement later stages.\n\nRequirements:\n1. pipeline/simulator.py — poll loop that writes CSV files under data/raw/.\n2. Each tick: BATCH_SIZE synthetic orders with required columns and valid ranges.\n3. Log “new orders arrived” (or similar). Support CORRUPT_BATCH_RATE for occasional NaN/bad types.\n4. Entrypoint: python -m pipeline.simulator using shared config/paths.\n\nRules:\n- Do not read or write data/features, models, or predictions.\n- Do not implement preprocess/train/infer/dashboard.\n- Keep generation deterministic enough to seed for tests (RANDOM_SEED).\n\nDone when data/raw/ fills while the simulator runs.", "test": "STAGE 1 — Simulator (TEST)\nAdd Stage 1 tests, then run the full suite. Do not start Stage 2 until green.\n\nAdd:\n1. Unit: one batch has required columns and valid ranges.\n2. Regression: seeded generator matches a golden small CSV under tests/fixtures/.\n3. Integration: running one tick writes a file under data/raw/ (use temp dirs).\n\nThen run: pytest\nMust pass ALL tests from stages 0 and 1.\n\nRules:\n- Tiny tests; reuse fixtures where helpful.\n- Do not implement Stage 2.\n- Stop when the full suite is green."}, {"number": 2, "title": "Preprocess", "teach": "Clean raw CSVs and write feature tables to data/features/.", "plan": "You are continuing DashBite. Stages 0–1 are done.\n\nSTAGE 2 — Preprocess (PLAN ONLY)\nDo not write implementation code yet. Produce a short plan for Stage 2 only.\n\nTeach goal: clean raw data and create a feature table for ML.\n\nPlan must cover:\n1. Read new raw CSVs from data/raw/ → drop rows with missing/invalid values.\n2. Add one or two columns only: hour from timestamp and/or is_peak (lunch/dinner window).\n3. Write to data/features/ (keep was_late for training).\n4. Optionally log per-batch throughput / field failures to data/quality/ for later dashboards.\n5. Runnable as: python -m pipeline.preprocess\n\nConstraints:\n- 1–2 feature columns only — do not expand the schema.\n- Do not implement train, infer, or dashboards.\n- Earlier stages must keep working via file handoffs.\n\nOutput: concise bullet plan — files, clean rules, feature defs, handoff, what NOT to touch.", "execute": "STAGE 2 — Preprocess (EXECUTE)\nImplement ONLY Stage 2 from the agreed plan. Do not implement later stages.\n\nRequirements:\n1. pipeline/preprocess.py — poll for new raw CSVs, drop invalid rows, add hour / is_peak.\n2. Write feature CSVs under data/features/ including was_late.\n3. Optionally append batch quality metrics to data/quality/.\n4. Entrypoint: python -m pipeline.preprocess using shared config/paths.\n\nRules:\n- Do not train models or write predictions.\n- Do not change the simulator’s public behavior.\n- Keep feature engineering to hour + is_peak only.\n\nDone when feature CSVs appear as raw files land.", "test": "STAGE 2 — Preprocess (TEST)\nAdd Stage 2 tests, then run the full suite. Do not start Stage 3 until green.\n\nAdd:\n1. Unit: drop-invalid + feature columns (hour / is_peak).\n2. Regression: fixed raw fixture → golden features CSV.\n3. Integration: raw landing → features output; Stage 0–1 tests still pass.\n\nThen run: pytest\nMust pass ALL tests from stages 0–2.\n\nRules:\n- Tiny tests; one clear assertion story each.\n- Do not implement Stage 3.\n- Stop when the full suite is green."}, {"number": 3, "title": "Train", "teach": "Retrain when enough new labels arrive; write checkpoints only.", "plan": "You are continuing DashBite. Stages 0–2 are done.\n\nSTAGE 3 — Training (PLAN ONLY)\nDo not write implementation code yet. Produce a short plan for Stage 3 only.\n\nTeach goal: models retrain when enough new labeled data arrives; training owns checkpoints.\n\nPlan must cover:\n1. Count new labeled feature rows since last train; if ≥ TRAIN_EVERY_N_EVENTS, train.\n2. Fit a tiny model (e.g. LogisticRegression on distance_km + prep_minutes).\n3. Write a new checkpoint under data/models/ (checkpoint_YYYYMMDD_HHMMSS.joblib + metrics JSON).\n4. Train ONLY writes — never calls infer, never imports infer, never blocks on scoring.\n5. Runnable as: python -m pipeline.train\n\nConstraints:\n- Independent process from inference (file coupling only via data/models/).\n- 1–2 features for the model only (use Config.feature_columns).\n- Do not implement infer or dashboards.\n\nOutput: concise bullet plan — trigger logic, checkpoint naming, isolation rules, what NOT to touch.", "execute": "STAGE 3 — Train (EXECUTE)\nImplement ONLY Stage 3 from the agreed plan. Do not implement later stages.\n\nRequirements:\n1. pipeline/train.py — poll features; retrain when new labeled count ≥ TRAIN_EVERY_N_EVENTS.\n2. Fit LogisticRegression (or similarly tiny model) on Config.feature_columns; seed via RANDOM_SEED.\n3. Write checkpoint_*.joblib + matching metrics_*.json under data/models/; persist train state so you do not retrain every tick.\n4. Entrypoint: python -m pipeline.train\n\nHard rules:\n- Do NOT import or call pipeline.infer.\n- Do NOT write to data/predictions/.\n- Train only writes checkpoints; it does not notify inference.\n\nDone when the first checkpoint appears after N new labeled rows.", "test": "STAGE 3 — Train (TEST)\nAdd Stage 3 tests, then run the full suite. Do not start Stage 4 until green.\n\nAdd:\n1. Unit: retrain triggers only when new labeled count ≥ N; checkpoint filename written.\n2. Regression: fixed features fixture → stable metrics JSON shape (deterministic seed).\n3. Integration: features → new checkpoint in data/models/; assert train does not import infer.\n\nThen run: pytest\nMust pass ALL tests from stages 0–3.\n\nRules:\n- Prove train/infer isolation in tests if possible (import checks).\n- Do not implement Stage 4.\n- Stop when the full suite is green."}, {"number": 4, "title": "Infer", "teach": "Score with the newest checkpoint; never depends on train being alive.", "plan": "You are continuing DashBite. Stages 0–3 are done.\n\nSTAGE 4 — Inference (PLAN ONLY)\nDo not write implementation code yet. Produce a short plan for Stage 4 only.\n\nTeach goal: apply the newest saved checkpoint to new data; inference never depends on the train process being alive.\n\nPlan must cover:\n1. On each poll: resolve the most recent checkpoint in data/models/; reload if newer.\n2. Score new feature rows; write order_id, late_probability, predicted_late, checkpoint_id to data/predictions/.\n3. If no checkpoint exists, log once and wait — do not crash or trigger training.\n4. Infer ONLY reads checkpoints — never imports train, never triggers retrain.\n5. Runnable as: python -m pipeline.infer\n\nConstraints:\n- Independent process from training (shared folder only).\n- Do not implement dashboards.\n- Keep output schema minimal and stable for tests.\n\nOutput: concise bullet plan — newest-checkpoint selection, output columns, isolation rules, what NOT to touch.", "execute": "STAGE 4 — Infer (EXECUTE)\nImplement ONLY Stage 4 from the agreed plan. Do not implement later stages.\n\nRequirements:\n1. pipeline/infer.py — poll features + models; pick newest checkpoint (mtime or timestamp in name).\n2. Score unscored feature rows; write predictions_*.csv under data/predictions/ with\n   order_id, late_probability, predicted_late, checkpoint_id.\n3. Skip cleanly when no checkpoint exists.\n4. Entrypoint: python -m pipeline.infer\n\nHard rules:\n- Do NOT import or call pipeline.train.\n- Do NOT write checkpoints.\n- Do not require train to be running.\n\nDone when predictions grow whenever a checkpoint and new features exist.", "test": "STAGE 4 — Infer (TEST)\nAdd Stage 4 tests, then run the full suite. Do not start Stage 5 until green.\n\nAdd:\n1. Unit: newest-checkpoint selection; skip cleanly when no checkpoint.\n2. Regression: fixed features + checkpoint → golden predictions (ids/scores within tolerance).\n3. Integration: features + checkpoint → data/predictions/; assert infer does not import train;\n   older stages still pass.\n\nThen run: pytest\nMust pass ALL tests from stages 0–4.\n\nRules:\n- Prove train/infer isolation.\n- Do not implement Stage 5.\n- Stop when the full suite is green."}, {"number": 5, "title": "ML Dashboard", "teach": "Model Pulse: sample volume and score distribution helpers.", "plan": "You are continuing DashBite. Stages 0–4 are done.\n\nSTAGE 5 — ML monitoring dashboard (PLAN ONLY)\nDo not write implementation code yet. Produce a short plan for Stage 5 only.\n\nTeach goal: watch the data and model outputs (Model Pulse).\n\nPlan must cover:\n1. Pure helper functions that compute sample volume / score summary from dataframes\n   (test these — not the browser UI).\n2. Sparse Streamlit page showing sample volume and late_probability distribution\n   (or recent predictions vs was_late).\n3. Read from data/features/ and data/predictions/ only — no coupling to train process.\n4. Layout can live under pipeline/dashboard/ (app + ml_metrics helpers).\n\nConstraints:\n- 1–2 charts/widgets only for this stage.\n- Do not build the business/Ops Control page yet (Stage 6).\n- Prefer helpers that pytest can exercise with fixtures.\n\nOutput: concise bullet plan — helpers, page widgets, files, what NOT to touch.", "execute": "STAGE 5 — ML Dashboard (EXECUTE)\nImplement ONLY Stage 5 from the agreed plan. Do not implement Stage 6 business KPIs.\n\nRequirements:\n1. pipeline/dashboard/ml_metrics.py — sample_volume(features), score_summary(predictions).\n2. Streamlit Model Pulse page (pipeline/dashboard/app.py or equivalent) that shows those KPIs\n   and a simple score distribution / recent chart.\n3. Load CSVs from data/features/ and data/predictions/.\n\nRules:\n- Test helpers with pytest; do not rely on browser automation.\n- Do not add late_rate / at-risk business metrics yet (Stage 6).\n- Keep the page sparse — teaching clarity over polish.\n\nDone when Model Pulse reads live feature/prediction files.", "test": "STAGE 5 — ML Dashboard (TEST)\nAdd Stage 5 tests, then run the full suite. Do not start Stage 6 until green.\n\nAdd:\n1. Unit: helpers that compute sample volume / score summary from dataframes.\n2. Regression: fixture preds/features → expected KPI numbers.\n3. Integration: helpers read real-shaped files from a temp data tree like prior stages.\n\nThen run: pytest\nMust pass ALL tests from stages 0–5.\n\nRules:\n- Test metric helpers, not the Streamlit browser UI.\n- Do not implement Stage 6.\n- Stop when the full suite is green."}, {"number": 6, "title": "Business Dashboard", "teach": "Ops Control: late rate and orders-at-risk value.", "plan": "You are continuing DashBite. Stages 0–5 are done.\n\nSTAGE 6 — Business dashboard (PLAN ONLY)\nDo not write implementation code yet. Produce a short plan for Stage 6 only.\n\nTeach goal: same pipeline, different audience metrics (Ops Control).\n\nPlan must cover:\n1. Helpers: late_rate and at-risk order value (count or sum of order_value where predicted late).\n2. Second Streamlit page/section for business KPIs.\n3. Read features + predictions handoff; reuse Stage 5 loading patterns.\n4. Still test helpers with pytest, not the browser.\n\nConstraints:\n- 1–2 business KPIs only.\n- Do not redesign Model Pulse; add Ops Control alongside it.\n- No Docker, Kafka, Spark, MLflow, or drift libraries.\n\nOutput: concise bullet plan — helpers, page, files, what NOT to touch.", "execute": "STAGE 6 — Business Dashboard (EXECUTE)\nImplement ONLY Stage 6 from the agreed plan.\n\nRequirements:\n1. pipeline/dashboard/biz_metrics.py — late_rate(...) and at_risk_order_value(...).\n2. Ops Control Streamlit page showing late rate and orders at risk (value or count).\n3. Join/use features + predictions as needed for KPIs.\n\nRules:\n- Do not break Model Pulse (Stage 5).\n- Keep KPIs to late rate + at-risk value only.\n- Prefer pure helpers that unit tests can call.\n\nDone when Ops Control shows business KPIs from the same data folders.", "test": "STAGE 6 — Business Dashboard (TEST)\nAdd Stage 6 tests, then run the full suite. Pipeline stages are complete when green.\n\nAdd:\n1. Unit: late rate + at-risk value helpers.\n2. Regression: fixture → expected KPI numbers.\n3. Integration: reads features/predictions handoff; full suite including stages 0–5 still green.\n\nThen run: pytest\nMust pass ALL tests from stages 0–6.\n\nRules:\n- Test helpers, not the browser UI.\n- After green: optionally note README runbook (run each stage in its own terminal; pytest after every stage).\n- Stop when the full suite is green — demo pipeline complete."}]}</script>
+  <script>
+    const data = JSON.parse(document.getElementById("prompt-data").textContent);
+    const board = document.getElementById("board");
+
+    function escapeHtml(s) {
+      return s
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function promptBlock(label, text) {
+      const id = "p-" + Math.random().toString(36).slice(2);
+      return `
+        <div class="caption">${label} — click Copy</div>
+        <div class="prompt-wrap">
+          <button class="copy-btn" type="button" data-copy="${id}">Copy</button>
+          <pre id="${id}">${escapeHtml(text)}</pre>
+        </div>`;
+    }
+
+    function stageDetails(title, teach, innerHtml, open) {
+      return `
+        <details class="stage" ${open ? "open" : ""}>
+          <summary>${escapeHtml(title)}</summary>
+          <div class="stage-body">
+            <p class="teach"><strong>Teach:</strong> ${escapeHtml(teach)}</p>
+            ${innerHtml}
+          </div>
+        </details>`;
+    }
+
+    function tabsFor(stage) {
+      const phases = [
+        ["plan", "Plan", "Plan only — no code yet"],
+        ["execute", "Execute", "Implement this stage only"],
+        ["test", "Test", "Add tests + full pytest gate"],
+      ];
+      const tabBtns = phases.map(([key, label], i) =>
+        `<button class="tab ${i === 0 ? "active" : ""}" type="button" data-tab="${key}">${label}</button>`
+      ).join("");
+      const panels = phases.map(([key, , caption], i) =>
+        `<div class="panel ${i === 0 ? "active" : ""}" data-panel="${key}">
+          ${promptBlock(caption, stage[key])}
+        </div>`
+      ).join("");
+      return `<div class="tabs">${tabBtns}</div>${panels}`;
+    }
+
+    function render(openAll) {
+      const baseInner = promptBlock("Plan only — high-level diagram", data.base.plan);
+      let html = stageDetails("0′ — " + data.base.title, data.base.teach, baseInner, openAll);
+      for (const s of data.stages) {
+        html += stageDetails(
+          `Stage ${s.number} — ${s.title}`,
+          s.teach,
+          tabsFor(s),
+          openAll
+        );
+      }
+      board.innerHTML = html;
+      bindInteractions();
+    }
+
+    function bindInteractions() {
+      board.querySelectorAll(".tabs").forEach((tabBar) => {
+        const parent = tabBar.parentElement;
+        tabBar.querySelectorAll(".tab").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            tabBar.querySelectorAll(".tab").forEach((b) => b.classList.remove("active"));
+            parent.querySelectorAll(".panel").forEach((p) => p.classList.remove("active"));
+            btn.classList.add("active");
+            parent.querySelector(`[data-panel="${btn.dataset.tab}"]`).classList.add("active");
+          });
+        });
+      });
+
+      board.querySelectorAll(".copy-btn").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const pre = document.getElementById(btn.dataset.copy);
+          try {
+            await navigator.clipboard.writeText(pre.textContent);
+            btn.textContent = "Copied";
+            btn.classList.add("copied");
+            setTimeout(() => {
+              btn.textContent = "Copy";
+              btn.classList.remove("copied");
+            }, 1200);
+          } catch (e) {
+            btn.textContent = "Select text";
+          }
+        });
+      });
+    }
+
+    const expandAll = document.getElementById("expand-all");
+    expandAll.addEventListener("change", () => render(expandAll.checked));
+    render(true);
+  </script>
+</body>
+</html>
