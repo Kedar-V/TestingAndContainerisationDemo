@@ -42,33 +42,44 @@ Use Cursor's /create-skill workflow to create a user-level skill named `dev-cycl
 
 The skill should support three roles: architect, implement, and review.
 
-Each role may run in a completely fresh chat, so the skill must never depend on previous conversational context. The repository should be treated as the shared source of truth.
+Each role may run in a completely fresh chat, so the skill must never depend on previous conversational context. The repository and plan.md should be treated as the shared source of truth.
+
+Workflow reminder the skill should encode:
+Architect (write plan.md) → Implementer (build) → Manual smoke test from plan.md → Reviewer
 
 Architect:
 - inspect the current repository
-- do not modify files
+- do not modify implementation files (may write/replace plan.md only)
 - understand the requested feature
 - propose the smallest clean design
 - identify relevant files/interfaces
-- explain how it should be tested
+- explain automated test strategy
+- write or replace plan.md with: Goal, Proposed changes, Architecture / boundaries, Automated tests, and a Manual Smoke Test section (What we're proving / Terminal / Watch for / Stop)
+- Manual Smoke Test must be a live demo from the terminal (visible logs, files on disk, readable outputs) — not pytest
+- stop after writing plan.md — do not implement
 
 Implement:
 - assume the planning conversation is unavailable
 - inspect the repository and reconstruct context yourself
+- read plan.md first; treat it as the architecture, automated test, and Manual Smoke Test handoff
 - implement the requested behavior using existing patterns
 - keep the change scoped
 - add/update relevant tests
 - run relevant tests and the broader suite when practical
+- do not replace the Manual Smoke Test wholesale; if commands or outputs changed, update only that section so it stays runnable
 - summarize what changed and test status
 
 Review:
 - assume another agent implemented the feature
+- read plan.md first for intended behavior, architecture, automated tests, and Manual Smoke Test
 - inspect it like a PR you did not author
-- verify the requested behavior and architecture
+- verify the requested behavior and architecture against that contract
 - look for bugs, regressions, coupling, edge cases, and weak tests
 - add useful missing tests
 - fix implementation bugs rather than weakening legitimate tests
 - run the relevant tests and broader suite
+- confirm the documented Manual Smoke Test is still accurate and runnable
+- keep plan.md synchronized with reality if commands or outputs changed
 - summarize findings and final test status
 
 Across all roles:
@@ -76,7 +87,7 @@ Across all roles:
 - prefer existing project conventions
 - avoid unnecessary abstractions
 - keep changes small and reviewable
-- tests are part of the handoff contract between independent agents
+- tests and the Manual Smoke Test in plan.md are part of the handoff contract between independent agents
 
 Make the skill available globally/user-level rather than only inside this repository.
 """

@@ -239,18 +239,20 @@ In a real project, we don't want to rewrite this scaffolding every time.
 
 Cursor Skills let us package the workflow once and reuse it across projects.
 
-Install the `dev-cycle` skill, then start three fresh chats for a feature:
+Install the `dev-cycle` skill, then start three fresh chats for a feature
+(and run the Manual Smoke Test from `plan.md` between Implement and Review):
 """
     )
     st.code(
         "/dev-cycle architect Add caching to the API\n\n"
         "/dev-cycle implement Add caching to the API\n\n"
+        "# then: run the Manual Smoke Test from plan.md with the class\n\n"
         "/dev-cycle review Add caching to the API",
         language="text",
     )
     st.info(
-        "Each chat starts fresh. The repository, interfaces, and tests provide "
-        "the shared context between agents."
+        "Each chat starts fresh. The repository, plan.md (including Manual Smoke Test), "
+        "interfaces, and tests provide the shared context between agents."
     )
     st.markdown("### Create it once")
     st.caption("Paste into Cursor — click the copy icon")

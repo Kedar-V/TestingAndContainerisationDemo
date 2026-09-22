@@ -393,15 +393,19 @@ def build() -> Path:
         Cursor Skills let us package the workflow once and reuse it across projects.
       </p>
       <p>
-        Install the <code>dev-cycle</code> skill, then start three fresh chats for a feature:
+        Install the <code>dev-cycle</code> skill, then start three fresh chats for a feature
+        (and run the Manual Smoke Test from <code>plan.md</code> between Implement and Review):
       </p>
       <div class="examples">/dev-cycle architect Add caching to the API
 
 /dev-cycle implement Add caching to the API
 
+# then: run the Manual Smoke Test from plan.md with the class
+
 /dev-cycle review Add caching to the API</div>
       <div class="callout">
-        Each chat starts fresh. The repository, interfaces, and tests provide the shared context between agents.
+        Each chat starts fresh. The repository, <code>plan.md</code> (including Manual Smoke Test),
+        interfaces, and tests provide the shared context between agents.
       </div>
       <h3>Create it once</h3>
       <div class="caption">Paste into Cursor — click Copy</div>
