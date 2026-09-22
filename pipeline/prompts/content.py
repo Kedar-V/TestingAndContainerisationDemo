@@ -32,7 +32,13 @@ Architecturally I want something modular and demo-friendly:
 - a couple of lightweight dashboards that read existing outputs rather than owning pipeline logic
 - no containers, Kafka, Spark, etc. — plain Python and files are enough
 
-Sketch a Mermaid flowchart (left-to-right is fine) that captures that story, including the train write path and the infer read path. Then give me a few short bullets on the teaching beats we should keep repeating as we build.
+Orchestration non-negotiable for this project:
+- everything we run in class or in smoke tests must be wired through a Makefile
+- prefer targets like `make install`, `make test`, `make simulator`, `make preprocess`, `make train`, `make infer`, `make dashboard`, `make run` / `make stop`, `make clean-data`
+- stages can still be implemented as `python -m pipeline.<stage>`, but the Makefile is the public interface the room uses
+- plan.md Manual Smoke Tests should use `make …` commands, not ad-hoc python invocations, unless something truly has no make target yet (in which case add the target)
+
+Sketch a Mermaid flowchart (left-to-right is fine) that captures that story, including the train write path and the infer read path. Then give me a few short bullets on the teaching beats we should keep repeating as we build — including that the Makefile is how we orchestrate the demo.
 
 Write that diagram and the short bullets into plan.md at the repo root so later chats can find it. Don't implement the pipeline yet — plan.md only.
 """
@@ -121,7 +127,7 @@ Write (or replace) plan.md using a concise structure like:
 ### Stop
 Ctrl+C when a process should be stopped
 
-The Manual Smoke Test is for a live classroom demo — visible logs, files on disk, readable CSV/model output. Do NOT use `pytest` as the smoke test; that's automated verification.
+The Manual Smoke Test is for a live classroom demo — visible logs, files on disk, readable CSV/model output. Prefer `make …` targets from the project Makefile as the commands the room runs. Do NOT use `pytest` as the smoke test; that's automated verification (`make test` is fine for the automated gate, not for the live smoke demo).
 """
 
 
@@ -196,10 +202,10 @@ Include:
 
 Non-negotiables:
 - columns: order_id, timestamp, distance_km, prep_minutes, order_value, was_late
-- runnable roughly as `python -m pipeline.simulator`, driven by shared batch size / poll interval
+- module runnable as `python -m pipeline.simulator`, exposed to the room via `make simulator`
 - live-feeling logs (“new orders arrived”); messy rows OK for later cleaning
 
-For the Manual Smoke Test, make it visual: Terminal 1 runs the simulator; Terminal 2 does `ls -lh data/raw` and `head` on a generated CSV. Students should see “new orders arrived” and new files appearing. Include Ctrl+C to stop the loop.
+For the Manual Smoke Test, make it visual: Terminal 1 runs `make simulator`; Terminal 2 does `ls -lh data/raw` and `head` on a generated CSV. Students should see “new orders arrived” and new files appearing. Include Ctrl+C to stop the loop.
 
 {_PLAN_MD_SHAPE}
 
@@ -210,7 +216,7 @@ We're implementing Stage 1 of the DashBite pipeline (simulator / intake).
 
 Inspect the repository and read plan.md first. Treat it as the architecture and behavior handoff from the planning agent — including the Manual Smoke Test.
 
-Implement the planned intake process: periodically write synthetic orders under data/raw/ with order_id, timestamp, distance_km, prep_minutes, order_value, was_late; live-feeling logs; shared config for batch size / poll interval; runnable as `python -m pipeline.simulator` (or equivalent).
+Implement the planned intake process: periodically write synthetic orders under data/raw/ with order_id, timestamp, distance_km, prep_minutes, order_value, was_late; live-feeling logs; shared config for batch size / poll interval; `python -m pipeline.simulator` under the hood with a `make simulator` target for the room.
 
 Keep this scoped to intake. Add/update relevant tests and run them as you work.
 
@@ -248,7 +254,7 @@ Non-negotiables:
 - clean invalid rows; derive hour and is_peak; write under data/features/; keep was_late
 - stages stay independent and talk through data/
 
-For the Manual Smoke Test, prefer separate terminals so the room sees Simulator → data/raw → Preprocess → data/features. Then `ls` / `head` a feature CSV and call out hour / is_peak / was_late. Include Ctrl+C for loops.
+For the Manual Smoke Test, prefer separate terminals so the room sees Simulator → data/raw → Preprocess → data/features via `make simulator` and `make preprocess`. Then `ls` / `head` a feature CSV and call out hour / is_peak / was_late. Include Ctrl+C for loops.
 
 {_PLAN_MD_SHAPE}
 
@@ -301,7 +307,7 @@ Non-negotiables:
 - threshold from TRAIN_EVERY_N_EVENTS
 - train only publishes — never import, call, or wait on inference
 
-For the Manual Smoke Test, make the classroom moment “Training published an artifact to disk.” Run enough data through to trigger a retrain (use a small TRAIN_EVERY_N_EVENTS if helpful for the demo), then `ls -lh data/models` and show the metrics sidecar. Do not involve inference yet.
+For the Manual Smoke Test, make the classroom moment “Training published an artifact to disk.” Drive data with `make` targets, run `make train` (use a small TRAIN_EVERY_N_EVENTS if helpful for the demo), then `ls -lh data/models` and show the metrics sidecar. Do not involve inference yet.
 
 {_PLAN_MD_SHAPE}
 
@@ -351,7 +357,7 @@ Non-negotiables:
 - never import training or trigger retraining
 - wait cleanly if no checkpoint exists
 
-For the Manual Smoke Test, this is the strongest classroom beat. Prefer separate terminals. Show inference finding a checkpoint, scoring features, and writing predictions (`ls` / `head` under data/predictions/). Design it so the instructor can prove “Training does not need to be running”: create a checkpoint, stop training, keep/start inference, process another batch, show scoring still works from the artifact on disk.
+For the Manual Smoke Test, this is the strongest classroom beat. Prefer separate terminals with `make` targets (`make train`, `make infer`, etc.). Show inference finding a checkpoint, scoring features, and writing predictions (`ls` / `head` under data/predictions/). Design it so the instructor can prove “Training does not need to be running”: create a checkpoint, stop training, keep/start inference, process another batch, show scoring still works from the artifact on disk.
 
 {_PLAN_MD_SHAPE}
 
@@ -408,7 +414,7 @@ Non-negotiables:
 - sparse Streamlit page; dashboards consume data/, don't own pipeline logic
 - no business/ops KPIs in this stage
 
-For the Manual Smoke Test, launch Streamlit with the project's actual command (e.g. whatever Makefile/README already use). Students should visibly see sample volume, score summary, and one or two charts. Keep enough terminal output to show Streamlit is reading existing pipeline artifacts.
+For the Manual Smoke Test, launch Streamlit via the Makefile (`make dashboard` or the project's documented target). Students should visibly see sample volume, score summary, and one or two charts. Keep enough terminal output to show Streamlit is reading existing pipeline artifacts.
 
 {_PLAN_MD_SHAPE}
 
@@ -458,7 +464,7 @@ Non-negotiables:
 - at-risk order value (sum of order_value where predicted_late)
 - keep Model Pulse intact; dashboards still only read data/
 
-For the Manual Smoke Test, launch or refresh the Streamlit view and show late rate + at-risk order value. Emphasize it reads the same pipeline outputs as Model Pulse for a different audience.
+For the Manual Smoke Test, launch or refresh the Streamlit view with `make dashboard` (or the documented make target) and show late rate + at-risk order value. Emphasize it reads the same pipeline outputs as Model Pulse for a different audience.
 
 {_PLAN_MD_SHAPE}
 
