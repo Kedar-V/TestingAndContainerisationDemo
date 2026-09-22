@@ -148,7 +148,7 @@ def main() -> None:
         <div class="dpb-hero">
           <h1>DashBite</h1>
           <p>Agent Prompt Board — Think it through → Build it → Check it as three
-          independent Cursor chats. The repo and tests are the shared source of truth.</p>
+          independent Cursor chats. The repo, <code>plan.md</code>, and tests are the shared source of truth.</p>
           <div class="dpb-loop">
             <span class="dpb-chip">THINK · ARCHITECT</span>
             <span class="dpb-chip">BUILD · IMPLEMENTER</span>

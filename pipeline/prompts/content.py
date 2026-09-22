@@ -57,9 +57,9 @@ Non-negotiables for this demo:
 Don't implement the code yet. Write your recommended approach and how you'd smoke-test it into plan.md (replace whatever is there — this stage owns that file now). Then stop so an implementer can pick it up.
 """,
         execute="""\
-We're adding the Stage 0 skeleton for the DashBite pipeline.
+Read plan.md first — it was written by the Think it through (architect) chat for this stage. Implement from that plan unless the repo clearly requires a small deviation (call those out briefly).
 
-Start by reading plan.md — that was written by the architect chat for this stage. Treat it as the agreed approach unless something in the repo clearly conflicts; if it conflicts, say so briefly and follow the safer path that still meets the constraints below.
+We're adding the Stage 0 skeleton for the DashBite pipeline.
 
 Inspect the current repo and fit this into whatever is already there.
 
@@ -99,9 +99,9 @@ Non-negotiables:
 We're not doing preprocess or training yet. Don't implement code — write the approach and how you'd test it into plan.md for this stage, then stop.
 """,
         execute="""\
-We're adding the simulator / intake stage to the DashBite pipeline.
+Read plan.md first — it was written by the Think it through (architect) chat for this stage. Implement from that plan unless the repo clearly requires a small deviation (call those out briefly).
 
-Read plan.md first — that's the architect's plan for this stage. Follow it unless the repo makes something impossible; call out any deviation briefly.
+We're adding the simulator / intake stage to the DashBite pipeline.
 
 The skeleton (config, paths, data folders, pytest) should already exist. Inspect the repo and follow those conventions.
 
@@ -137,9 +137,9 @@ Keep this small. We're not building training yet. Stages should stay independent
 Don't implement yet. Capture your recommended approach and tests in plan.md, then stop for the implementer.
 """,
         execute="""\
-We're adding the preprocessing stage to the DashBite pipeline.
+Read plan.md first — it was written by the Think it through (architect) chat for this stage. Implement from that plan unless the repo clearly requires a small deviation (call those out briefly).
 
-Read plan.md first and treat it as the agreed design for this stage. If something in the repo conflicts, note it and stay aligned with the constraints below.
+We're adding the preprocessing stage to the DashBite pipeline.
 
 Raw synthetic orders are already being written under data/raw/. Inspect the repo and fit this into the patterns that are already there.
 
@@ -180,9 +180,9 @@ Non-negotiables:
 Don't implement code. Write the plan into plan.md for this stage, then stop.
 """,
         execute="""\
-We're at the training stage of the DashBite pipeline. Clean labeled features are already being written under data/features/.
+Read plan.md first — it was written by the Think it through (architect) chat for this stage. Implement from that plan unless the repo clearly requires a small deviation (call those out briefly).
 
-Read plan.md first — implement from that architect plan. Flag briefly if you must diverge.
+We're at the training stage of the DashBite pipeline. Clean labeled features are already being written under data/features/.
 
 Inspect the current repo and add the model's write path.
 
@@ -222,9 +222,9 @@ Non-negotiables:
 Don't implement yet. Put the design and test ideas into plan.md, then stop.
 """,
         execute="""\
-We're adding inference to the DashBite pipeline. Training already publishes versioned model checkpoints under data/models/, and feature files arrive under data/features/.
+Read plan.md first — it was written by the Think it through (architect) chat for this stage. Implement from that plan unless the repo clearly requires a small deviation (call those out briefly).
 
-Read plan.md first and implement from that plan. Call out any necessary deviations briefly.
+We're adding inference to the DashBite pipeline. Training already publishes versioned model checkpoints under data/models/, and feature files arrive under data/features/.
 
 Inspect the existing implementation as well.
 
@@ -276,9 +276,9 @@ Non-negotiables:
 Don't implement yet. Write the approach into plan.md, then stop.
 """,
         execute="""\
-We're adding the ML monitoring dashboard (Model Pulse) to DashBite.
+Read plan.md first — it was written by the Think it through (architect) chat for this stage. Implement from that plan unless the repo clearly requires a small deviation (call those out briefly).
 
-Read plan.md first and build from that architect plan.
+We're adding the ML monitoring dashboard (Model Pulse) to DashBite.
 
 Feature and prediction files should already exist under data/features/ and data/predictions/. Inspect the repo and fit into existing load/path patterns.
 
@@ -315,9 +315,9 @@ Non-negotiables:
 Don't implement yet. Capture the plan in plan.md, then stop for the implementer.
 """,
         execute="""\
-We're adding the business / Ops Control dashboard to DashBite.
+Read plan.md first — it was written by the Think it through (architect) chat for this stage. Implement from that plan unless the repo clearly requires a small deviation (call those out briefly).
 
-Read plan.md first and implement from it. Note briefly if you need to diverge.
+We're adding the business / Ops Control dashboard to DashBite.
 
 Model Pulse and the upstream feature/prediction outputs should already be in place. Inspect the repo and reuse existing loading patterns.
 
