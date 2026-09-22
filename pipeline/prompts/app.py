@@ -11,11 +11,14 @@ from pipeline.prompts.content import (
     CREATE_SKILL_PROMPT,
     STAGES,
     StagePrompts,
+    WRAP_UP_PROMPT,
+    WRAP_UP_TEACH,
+    WRAP_UP_TITLE,
 )
 
 PHASES = (
-    ("plan", "Think it through", "Fresh architect chat — write plan.md (+ Manual Smoke Test)"),
-    ("execute", "Build it", "Fresh implementer chat — read plan.md, then build"),
+    ("plan", "Think it through", "Fresh architect chat — append stage to docs/plan.md (+ Manual Smoke Test)"),
+    ("execute", "Build it", "Fresh implementer chat — read docs/plan.md, then build"),
     ("test", "Check it", "Fresh reviewer chat — verify code, tests & smoke-test docs"),
 )
 
@@ -149,7 +152,7 @@ def main() -> None:
         <div class="dpb-hero">
           <h1>DashBite</h1>
           <p>Agent Prompt Board — Think it through → Build it → Check it as three
-          independent Cursor chats. The repo, <code>plan.md</code>, and tests are the shared source of truth.</p>
+          independent Cursor chats. The repo, a single living <code>docs/plan.md</code>, and tests are the shared source of truth.</p>
           <div class="dpb-loop">
             <span class="dpb-chip">THINK · ARCHITECT</span>
             <span class="dpb-chip">BUILD · IMPLEMENTER</span>
@@ -166,9 +169,9 @@ def main() -> None:
         <div class="dpb-how">
           <strong>How to use in the demo:</strong>
           Each step is intentionally run in a <em>fresh</em> Cursor chat.
-          Think it through acts like an architect (writes <code>plan.md</code>,
-          including a <em>Manual Smoke Test</em>),
-          Build it like an implementer (reads <code>plan.md</code> first), and
+          Think it through acts like an architect (appends to <code>docs/plan.md</code>,
+          including a <em>Manual Smoke Test</em> — never overwrites earlier stages),
+          Build it like an implementer (reads <code>docs/plan.md</code> first), and
           Check it like a reviewer. After Build, run the smoke test from the terminal
           with the class before opening the reviewer chat. Wait for full
           <code>pytest</code> green before the next stage's architect chat.
@@ -182,15 +185,15 @@ def main() -> None:
         <div class="dpb-roles">
           <div class="dpb-role">
             <strong>ARCHITECT</strong>
-            Fresh chat. Inspect the repo, write plan.md (design + automated tests + Manual Smoke Test) — don't implement.
+            Fresh chat. Inspect the repo, append this stage to docs/plan.md (design + automated tests + Manual Smoke Test) — don't implement.
           </div>
           <div class="dpb-role">
             <strong>IMPLEMENTER</strong>
-            Fresh chat. Read plan.md first, then build. Keep the smoke-test section runnable.
+            Fresh chat. Read docs/plan.md first, then build. Keep this stage's smoke-test section runnable.
           </div>
           <div class="dpb-role">
             <strong>REVIEWER</strong>
-            Fresh chat. Read plan.md, verify code/tests, and confirm the Manual Smoke Test still matches reality.
+            Fresh chat. Read docs/plan.md, verify code/tests, and confirm this stage's Manual Smoke Test still matches reality.
           </div>
         </div>
         """,
@@ -224,10 +227,18 @@ def main() -> None:
                         st.markdown(
                             '<p class="dpb-stage-meta" style="margin-top:0.75rem;">'
                             "<strong>Live with the class:</strong> "
-                            "<code>Build → run plan.md smoke test manually → Check</code>"
+                            "<code>Build → run docs/plan.md smoke test manually → Check</code>"
                             "</p>",
                             unsafe_allow_html=True,
                         )
+
+    with st.expander(f"7′ — {WRAP_UP_TITLE}", expanded=expand_all):
+        st.markdown(
+            f'<p class="dpb-stage-meta"><strong>Teach:</strong> {WRAP_UP_TEACH}</p>',
+            unsafe_allow_html=True,
+        )
+        st.caption("End of demo — paste into a fresh chat; click the copy icon")
+        st.code(WRAP_UP_PROMPT, language="markdown")
 
     st.divider()
     st.markdown("## Take the workflow with you")
@@ -240,18 +251,18 @@ In a real project, we don't want to rewrite this scaffolding every time.
 Cursor Skills let us package the workflow once and reuse it across projects.
 
 Install the `dev-cycle` skill, then start three fresh chats for a feature
-(and run the Manual Smoke Test from `plan.md` between Implement and Review):
+(and run the Manual Smoke Test from `docs/plan.md` between Implement and Review):
 """
     )
     st.code(
         "/dev-cycle architect Add caching to the API\n\n"
         "/dev-cycle implement Add caching to the API\n\n"
-        "# then: run the Manual Smoke Test from plan.md with the class\n\n"
+        "# then: run the Manual Smoke Test from docs/plan.md with the class\n\n"
         "/dev-cycle review Add caching to the API",
         language="text",
     )
     st.info(
-        "Each chat starts fresh. The repository, plan.md (including Manual Smoke Test), "
+        "Each chat starts fresh. The repository, a single docs/plan.md (append-only stages, including Manual Smoke Test), "
         "interfaces, and tests provide the shared context between agents."
     )
     st.markdown("### Create it once")
@@ -268,7 +279,7 @@ Install the `dev-cycle` skill, then start three fresh chats for a feature
 
     st.divider()
     st.caption(
-        "Teaching point: plan.md (with Manual Smoke Test), the repo, filesystem contracts, "
+        "Teaching point: docs/plan.md (append-only living plan with Manual Smoke Tests), the repo, filesystem contracts, "
         "and automated tests let independent agents collaborate without shared chat history. "
         "Full pytest green before the next stage. Local board: make prompts → :8502."
     )

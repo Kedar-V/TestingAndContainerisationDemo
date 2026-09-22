@@ -44,3 +44,16 @@ def field_failure_totals(quality_log: pd.DataFrame) -> dict[str, int]:
             field = col[len(FAIL_PREFIX) :]
             totals[field] = int(quality_log[col].fillna(0).sum())
     return totals
+
+
+def failures_ranked(failures: dict[str, int]) -> pd.DataFrame:
+    """Failure counts sorted high→low for a single-claim horizontal bar chart."""
+    if not failures:
+        return pd.DataFrame(columns=["field", "failed_rows"])
+    return (
+        pd.DataFrame(
+            {"field": list(failures.keys()), "failed_rows": list(failures.values())}
+        )
+        .sort_values("failed_rows", ascending=False)
+        .reset_index(drop=True)
+    )

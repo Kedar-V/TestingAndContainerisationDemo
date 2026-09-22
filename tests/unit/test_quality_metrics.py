@@ -5,7 +5,11 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from pipeline.dashboard.quality_metrics import field_failure_totals, throughput_summary
+from pipeline.dashboard.quality_metrics import (
+    failures_ranked,
+    field_failure_totals,
+    throughput_summary,
+)
 
 
 @pytest.mark.unit
@@ -28,3 +32,9 @@ def test_throughput_and_field_failures():
     fails = field_failure_totals(log)
     assert fails["distance_km"] == 3
     assert fails["was_late"] == 2
+
+    ranked = failures_ranked(fails)
+    assert list(ranked.columns) == ["field", "failed_rows"]
+    assert ranked.iloc[0]["field"] == "distance_km"
+    assert ranked.iloc[0]["failed_rows"] == 3
+    assert failures_ranked({}).empty

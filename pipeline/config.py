@@ -16,7 +16,7 @@ class Config:
 
     train_every_n_events: int = 2000
     batch_size: int = 50
-    poll_interval_seconds: float = 2.0
+    poll_interval_seconds: float = 15.0
     feature_columns: tuple[str, ...] = ("distance_km", "prep_minutes")
     random_seed: int = 42
     # Fraction of batches that include corrupted rows (NaN / bad types)
@@ -30,7 +30,7 @@ class Config:
             ),
             batch_size=int(os.environ.get("BATCH_SIZE", "50")),
             poll_interval_seconds=float(
-                os.environ.get("POLL_INTERVAL_SECONDS", "2.0")
+                os.environ.get("POLL_INTERVAL_SECONDS", "15.0")
             ),
             random_seed=int(os.environ.get("RANDOM_SEED", "42")),
             corrupt_batch_rate=float(

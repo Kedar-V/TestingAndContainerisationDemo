@@ -204,25 +204,28 @@ Deliverable: predictions grow when a checkpoint exists; stage 0–4 suite green.
 
 ## Stage 5 — ML monitoring dashboard
 
-**Teach:** watch the data and model outputs.
+**Teach:** watch whether the late-prediction system is healthy (claim-first charts).
 
-**1–2 features (charts/widgets only):**
-1. Count of new samples over time (or latest batch sizes)
-2. Distribution of `late_probability` (or recent predictions vs `was_late`)
+**Features (charts/widgets):**
+1. **Time-series volume** — orders over a recent window (active title; human-readable time axis)
+2. **Score bands** — `late_probability` histogram with labels like `0.0–0.1` (not Interval objects); cue the 0.5 decision region
+3. **Ranked field failures** — one horizontal bar chart; no duplicate table
+4. **Few KPIs** (~3): samples, drop rate, mean score — not a metrics wall
 
-Deliverable: one sparse Streamlit page; stage 0–5 suite green (test helpers, not the browser UI).
+Deliverable: sparse Streamlit Model Pulse page; stage 0–5 suite green (test helpers, not the browser UI).
 
 ---
 
 ## Stage 6 — Business dashboard
 
-**Teach:** same pipeline, different audience metrics.
+**Teach:** same pipeline, different audience — dollars at risk.
 
-**1–2 features:**
-1. **Late rate**
-2. **Orders at risk** (count or sum of `order_value` where predicted late)
+**Features:**
+1. **At-risk order value** as the lead claim (active title)
+2. **Late rate** beside it
+3. Recent predictions table as **drill-down only** (not the main visual)
 
-Deliverable: second Streamlit page; stage 0–6 suite green.
+Deliverable: Ops Control page beside Model Pulse; stage 0–6 suite green.
 
 ---
 

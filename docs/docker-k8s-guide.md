@@ -84,7 +84,7 @@ services:
       DATA_ROOT: /app/data
       TRAIN_EVERY_N_EVENTS: "50"
       BATCH_SIZE: "20"
-      POLL_INTERVAL_SECONDS: "2"
+      POLL_INTERVAL_SECONDS: "15"
       CORRUPT_BATCH_RATE: "0.25"
     volumes:
       - dashbite-data:/app/data
@@ -149,7 +149,7 @@ docker compose down
 | `DATA_ROOT` | `<project>/data` | Shared pipeline data directory |
 | `TRAIN_EVERY_N_EVENTS` | `2000` | Retrain after this many new labeled rows |
 | `BATCH_SIZE` | `50` | Orders per simulator tick |
-| `POLL_INTERVAL_SECONDS` | `2.0` | Sleep between polls/ticks |
+| `POLL_INTERVAL_SECONDS` | `15.0` | Sleep between polls/ticks |
 | `CORRUPT_BATCH_RATE` | `0.25` | Fraction of batches with NaNs / bad types |
 | `RANDOM_SEED` | `42` | Training seed |
 

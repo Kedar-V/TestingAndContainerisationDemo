@@ -30,17 +30,20 @@ Architecturally I want something modular and demo-friendly:
 - training publishes versioned checkpoints; inference is a separate consumer of the newest checkpoint on disk
 - if training is down, inference should still work off whatever model is already there
 - a couple of lightweight dashboards that read existing outputs rather than owning pipeline logic
+- dashboards follow claim-first viz: active titles, human-readable labels, one story per chart — not a metrics dump
+- the ML dashboard must include a time-series of sample volume over time (not just a single volume number)
 - no containers, Kafka, Spark, etc. — plain Python and files are enough
 
 Orchestration non-negotiable for this project:
 - everything we run in class or in smoke tests must be wired through a Makefile
 - prefer targets like `make install`, `make test`, `make simulator`, `make preprocess`, `make train`, `make infer`, `make dashboard`, `make run` / `make stop`, `make clean-data`
 - stages can still be implemented as `python -m pipeline.<stage>`, but the Makefile is the public interface the room uses
-- plan.md Manual Smoke Tests should use `make …` commands, not ad-hoc python invocations, unless something truly has no make target yet (in which case add the target)
+- a single living plan lives at `docs/plan.md` — Architect owns it; stages are appended, never wholesale-overwritten
+- `docs/plan.md` Manual Smoke Tests should use `make …` commands, not ad-hoc python invocations, unless something truly has no make target yet (in which case add the target)
 
 Sketch a Mermaid flowchart (left-to-right is fine) that captures that story, including the train write path and the infer read path. Then give me a few short bullets on the teaching beats we should keep repeating as we build — including that the Makefile is how we orchestrate the demo.
 
-Write that diagram and the short bullets into plan.md at the repo root so later chats can find it. Don't implement the pipeline yet — plan.md only.
+Create `docs/plan.md` (the one plan file for the whole demo) with that diagram and the short bullets under a clear header (e.g. `# DashBite — living plan` plus a `## Base — Pipeline diagram` section). Don't implement the pipeline yet — `docs/plan.md` only.
 """
 
 CREATE_SKILL_PROMPT = """\
@@ -48,36 +51,37 @@ Use Cursor's /create-skill workflow to create a user-level skill named `dev-cycl
 
 The skill should support three roles: architect, implement, and review.
 
-Each role may run in a completely fresh chat, so the skill must never depend on previous conversational context. The repository and plan.md should be treated as the shared source of truth.
+Each role may run in a completely fresh chat, so the skill must never depend on previous conversational context. The repository and a single living `docs/plan.md` should be treated as the shared source of truth.
 
 Workflow reminder the skill should encode:
-Architect (write plan.md) → Implementer (build) → Manual smoke test from plan.md → Reviewer
+Architect (append to docs/plan.md) → Implementer (build) → Manual smoke test from docs/plan.md → Reviewer
 
 Architect:
 - inspect the current repository
-- do not modify implementation files (may write/replace plan.md only)
-- understand the requested feature
+- do not modify implementation files (may create/update `docs/plan.md` only)
+- understand the requested feature / stage
 - propose the smallest clean design
 - identify relevant files/interfaces
 - explain automated test strategy
-- write or replace plan.md with: Goal, Proposed changes, Architecture / boundaries, Automated tests, and a Manual Smoke Test section (What we're proving / Terminal / Watch for / Stop)
+- maintain ONE plan file at `docs/plan.md`: create it if missing; otherwise APPEND a new stage/feature section — never overwrite the whole file or delete earlier sections
+- each appended section includes: Goal, Proposed changes, Architecture / boundaries, Automated tests, and a Manual Smoke Test (What we're proving / Terminal / Watch for / Stop)
 - Manual Smoke Test must be a live demo from the terminal (visible logs, files on disk, readable outputs) — not pytest
-- stop after writing plan.md — do not implement
+- stop after updating docs/plan.md — do not implement
 
 Implement:
 - assume the planning conversation is unavailable
 - inspect the repository and reconstruct context yourself
-- read plan.md first; treat it as the architecture, automated test, and Manual Smoke Test handoff
+- read docs/plan.md first (focus on the latest / relevant stage section; earlier sections are context); treat it as the architecture, automated test, and Manual Smoke Test handoff
 - implement the requested behavior using existing patterns
 - keep the change scoped
 - add/update relevant tests
 - run relevant tests and the broader suite when practical
-- do not replace the Manual Smoke Test wholesale; if commands or outputs changed, update only that section so it stays runnable
+- never rewrite docs/plan.md from scratch; if the Manual Smoke Test drifted, update only that stage's Manual Smoke Test section so it stays runnable
 - summarize what changed and test status
 
 Review:
 - assume another agent implemented the feature
-- read plan.md first for intended behavior, architecture, automated tests, and Manual Smoke Test
+- read docs/plan.md first for intended behavior, architecture, automated tests, and Manual Smoke Test
 - inspect it like a PR you did not author
 - verify the requested behavior and architecture against that contract
 - look for bugs, regressions, coupling, edge cases, and weak tests
@@ -85,7 +89,7 @@ Review:
 - fix implementation bugs rather than weakening legitimate tests
 - run the relevant tests and broader suite
 - confirm the documented Manual Smoke Test is still accurate and runnable
-- keep plan.md synchronized with reality if commands or outputs changed
+- keep the relevant stage section in docs/plan.md synchronized with reality if commands or outputs changed (do not wipe earlier stages)
 - summarize findings and final test status
 
 Across all roles:
@@ -93,41 +97,57 @@ Across all roles:
 - prefer existing project conventions
 - avoid unnecessary abstractions
 - keep changes small and reviewable
-- tests and the Manual Smoke Test in plan.md are part of the handoff contract between independent agents
+- the single `docs/plan.md` (with Manual Smoke Tests) is part of the handoff contract between independent agents
 
 Make the skill available globally/user-level rather than only inside this repository.
 """
 
 _PLAN_MD_SHAPE = """\
-Write (or replace) plan.md using a concise structure like:
+Maintain a single living plan at docs/plan.md (Architect-owned). Stages are appended; the file is never wholesale-overwritten.
 
-# Stage N — <Title>
+Rules:
+- if docs/plan.md does not exist, create it with a short project header, then add this stage's section
+- if it already exists, APPEND this stage's section at the end — do not delete or rewrite earlier stages
+- only the Architect owns structural additions; Implementer/Reviewer may fix this stage's Manual Smoke Test wording if commands drifted
 
-## Goal
+Append a concise section shaped like:
+
+## Stage N — <Title>
+
+### Goal
 ...
 
-## Proposed changes
+### Proposed changes
 - ...
 
-## Architecture / boundaries
+### Architecture / boundaries
 - ...
 
-## Automated tests
+### Automated tests
 - Unit: ...
 - Regression: ...
 - Integration: ...
 
-## Manual Smoke Test
-### What we're proving
+### Manual Smoke Test
+#### What we're proving
 ...
-### Terminal
+#### Terminal
 (pasteable commands; label Terminal 1 / 2 / 3 if needed)
-### Watch for
+#### Watch for
 ...
-### Stop
+#### Stop
 Ctrl+C when a process should be stopped
 
 The Manual Smoke Test is for a live classroom demo — visible logs, files on disk, readable CSV/model output. Prefer `make …` targets from the project Makefile as the commands the room runs. Do NOT use `pytest` as the smoke test; that's automated verification (`make test` is fine for the automated gate, not for the live smoke demo).
+"""
+
+_DASHBOARD_VIZ = """\
+Visualization quality bar (non-negotiable for dashboard UI):
+- story first: each chart/section has one claim; titles state a finding (active voice), not variable names
+- reduce decoding: human-readable axis labels (e.g. score bands `0.0–0.1`, not Interval/`{{"left":…}}` junk); prefer horizontal text
+- do not make the audience do math: encode the decision quantity directly (drop rate, at-risk $, ranked failures)
+- data-ink: few KPIs (about 2–3); no duplicate chart+table for the same fact; no competing multi-series that retell a KPI
+- Model Pulse ≠ Ops Control: ML health vs business risk — don't mix audiences on one page
 """
 
 
@@ -139,7 +159,7 @@ STAGES: tuple[StagePrompts, ...] = (
         plan=f"""\
 We're starting DashBite from an empty-ish repo and need the smallest foundation before anything interesting.
 
-Inspect the repository and write the implementation plan to plan.md.
+Inspect the repository and append this stage's implementation plan to docs/plan.md (create the file if missing; never overwrite earlier stages).
 
 Include:
 - what we're changing
@@ -157,29 +177,29 @@ For the Manual Smoke Test, design something short and visible: load config (and 
 
 {_PLAN_MD_SHAPE}
 
-Do not implement the feature yet. Only write plan.md, then stop.
+Do not implement the feature yet. Only update docs/plan.md (append this stage), then stop.
 """,
         execute="""\
 We're implementing Stage 0 of the DashBite pipeline.
 
-Inspect the repository and read plan.md first. Treat it as the architecture and behavior handoff from the planning agent — including the Manual Smoke Test section.
+Inspect the repository and read docs/plan.md first (focus on this stage's section; earlier stages are context). Treat it as the architecture and behavior handoff from the planning agent — including the Manual Smoke Test section.
 
 Implement the planned skeleton using the existing project patterns: pipeline package with shared config and path helpers, data/ folders, pytest markers. Config defaults should include TRAIN_EVERY_N_EVENTS=2000 and BATCH_SIZE=50, overridable from the environment.
 
 Keep the change scoped — no simulator or model yet. Add/update the relevant tests, and run them as you work.
 
-When implementation is complete, do not replace the manual smoke-test instructions in plan.md. Make sure they still match the actual commands and behavior. If implementation details changed enough that the documented smoke test is no longer accurate, update only that section so it is runnable.
+When implementation is complete, do not overwrite docs/plan.md or earlier stage sections. Make sure this stage's Manual Smoke Test still matches the actual commands and behavior. If details changed, update only that stage's Manual Smoke Test section so it is runnable.
 """,
         test="""\
 Review the current Stage 0 skeleton as if this were a PR you did not author.
 
-Read plan.md first to understand the intended behavior, architecture, automated test strategy, and manual smoke test.
+Read docs/plan.md first (this stage's section) to understand the intended behavior, architecture, automated test strategy, and manual smoke test.
 
 Verify the implementation against that contract: shared config (TRAIN_EVERY_N_EVENTS / BATCH_SIZE), path helpers, data dirs, pytest layout.
 
 Add or improve unit, regression, and integration tests where they provide meaningful coverage. Run the full pytest suite. If something fails, fix the underlying implementation problem rather than weakening a legitimate test.
 
-Inspect whether the documented Manual Smoke Test is still accurate and runnable (you don't need to perform the live classroom demo). Keep plan.md synchronized with reality if commands or outputs changed.
+Inspect whether the documented Manual Smoke Test is still accurate and runnable (you don't need to perform the live classroom demo). Keep this stage's section in docs/plan.md synchronized with reality if commands or outputs changed — never wipe earlier stages.
 
 Finish with a short summary of what you checked, anything you changed, and whether the full suite passes.
 """,
@@ -191,7 +211,7 @@ Finish with a short summary of what you checked, anything you changed, and wheth
         plan=f"""\
 The project foundation should already be in place. Next I want the system to feel alive with synthetic DashBite orders.
 
-Inspect the repository and write the implementation plan to plan.md.
+Inspect the repository and append this stage's implementation plan to docs/plan.md (create the file if missing; never overwrite earlier stages).
 
 Include:
 - what we're changing
@@ -209,27 +229,27 @@ For the Manual Smoke Test, make it visual: Terminal 1 runs `make simulator`; Ter
 
 {_PLAN_MD_SHAPE}
 
-Do not implement the feature yet. Only write plan.md, then stop.
+Do not implement the feature yet. Only update docs/plan.md (append this stage), then stop.
 """,
         execute="""\
 We're implementing Stage 1 of the DashBite pipeline (simulator / intake).
 
-Inspect the repository and read plan.md first. Treat it as the architecture and behavior handoff from the planning agent — including the Manual Smoke Test.
+Inspect the repository and read docs/plan.md first (focus on this stage's section; earlier stages are context). Treat it as the architecture and behavior handoff from the planning agent — including the Manual Smoke Test.
 
 Implement the planned intake process: periodically write synthetic orders under data/raw/ with order_id, timestamp, distance_km, prep_minutes, order_value, was_late; live-feeling logs; shared config for batch size / poll interval; `python -m pipeline.simulator` under the hood with a `make simulator` target for the room.
 
 Keep this scoped to intake. Add/update relevant tests and run them as you work.
 
-When implementation is complete, do not replace the manual smoke-test instructions in plan.md. Make sure they still match the actual commands and behavior. If details changed enough that the smoke test is no longer accurate, update only that section so it is runnable.
+When implementation is complete, do not overwrite docs/plan.md or earlier stage sections. Make sure this stage's Manual Smoke Test still matches the actual commands and behavior. If details changed, update only that stage's Manual Smoke Test section so it is runnable.
 """,
         test="""\
 Review the current Stage 1 simulator as if this were a PR you did not author.
 
-Read plan.md first for intended behavior, architecture, automated tests, and the Manual Smoke Test.
+Read docs/plan.md first (this stage's section) for intended behavior, architecture, automated tests, and the Manual Smoke Test.
 
 Verify intake writes the expected columns under data/raw/, uses shared config, and doesn't reach into features/models/predictions. Strengthen unit/regression/integration coverage (seeded golden fixture + one-tick write). Run the full suite.
 
-Inspect whether the documented Manual Smoke Test is still accurate and runnable. Keep plan.md synchronized if commands or outputs changed. Fix real bugs rather than softening asserts.
+Inspect whether the documented Manual Smoke Test is still accurate and runnable. Keep this stage's section in docs/plan.md synchronized if commands or outputs changed — never wipe earlier stages. Fix real bugs rather than softening asserts.
 
 Summarize findings, changes, and suite status.
 """,
@@ -241,7 +261,7 @@ Summarize findings, changes, and suite status.
         plan=f"""\
 Raw orders are already landing under data/raw/. Next we need a preprocessing stage that turns them into model-ready features.
 
-Inspect the repository and write the implementation plan to plan.md.
+Inspect the repository and append this stage's implementation plan to docs/plan.md (create the file if missing; never overwrite earlier stages).
 
 Include:
 - what we're changing
@@ -258,29 +278,29 @@ For the Manual Smoke Test, prefer separate terminals so the room sees Simulator 
 
 {_PLAN_MD_SHAPE}
 
-Do not implement the feature yet. Only write plan.md, then stop.
+Do not implement the feature yet. Only update docs/plan.md (append this stage), then stop.
 """,
         execute="""\
 We're implementing Stage 2 of the DashBite pipeline.
 
-Inspect the repository and read plan.md first. Treat it as the architecture and behavior handoff from the planning agent.
+Inspect the repository and read docs/plan.md first (focus on this stage's section; earlier stages are context). Treat it as the architecture and behavior handoff from the planning agent.
 
 Implement the planned preprocessing stage using the existing project patterns: clean obviously invalid rows, derive hour from timestamp and is_peak for lunch/dinner, write model-ready CSVs under data/features/, keep was_late. Communicate through data/ rather than importing another stage's runtime logic.
 
 Keep the change scoped, add/update the relevant tests, and run them as you work.
 
-When implementation is complete, do not replace the manual smoke-test instructions in plan.md. Make sure they still match the actual commands and behavior. If implementation details changed enough that the documented smoke test is no longer accurate, update only that section so it is runnable.
+When implementation is complete, do not overwrite docs/plan.md or earlier stage sections. Make sure this stage's Manual Smoke Test still matches the actual commands and behavior. If details changed, update only that stage's Manual Smoke Test section so it is runnable.
 """,
         test="""\
 Review the current Stage 2 implementation as if this were a PR you did not author.
 
-Read plan.md first to understand the intended behavior, architecture, automated test strategy, and manual smoke test.
+Read docs/plan.md first (this stage's section) to understand the intended behavior, architecture, automated test strategy, and manual smoke test.
 
 Verify the implementation against that contract (invalid rows dropped; hour / is_peak / was_late; outputs under data/features/).
 
 Run the automated tests and inspect whether the documented Manual Smoke Test is still accurate and runnable.
 
-If implementation bugs exist, fix them rather than weakening legitimate tests. Keep plan.md synchronized with reality if commands or outputs changed.
+If implementation bugs exist, fix them rather than weakening legitimate tests. Keep this stage's section in docs/plan.md synchronized with reality if commands or outputs changed — never wipe earlier stages.
 
 Finish with a short summary of findings, changes, and suite status.
 """,
@@ -292,7 +312,7 @@ Finish with a short summary of findings, changes, and suite status.
         plan=f"""\
 Clean labeled features should already be showing up under data/features/. Next is the model's write path.
 
-Inspect the repository and write the implementation plan to plan.md.
+Inspect the repository and append this stage's implementation plan to docs/plan.md (create the file if missing; never overwrite earlier stages).
 
 Include:
 - what we're changing
@@ -311,27 +331,27 @@ For the Manual Smoke Test, make the classroom moment “Training published an ar
 
 {_PLAN_MD_SHAPE}
 
-Do not implement the feature yet. Only write plan.md, then stop.
+Do not implement the feature yet. Only update docs/plan.md (append this stage), then stop.
 """,
         execute="""\
 We're implementing Stage 3 of the DashBite pipeline (training / write path).
 
-Inspect the repository and read plan.md first. Treat it as the architecture and behavior handoff from the planning agent — including the Manual Smoke Test.
+Inspect the repository and read docs/plan.md first (focus on this stage's section; earlier stages are context). Treat it as the architecture and behavior handoff from the planning agent — including the Manual Smoke Test.
 
 Implement training: retrain after TRAIN_EVERY_N_EVENTS new labeled examples; publish a versioned checkpoint under data/models/ with a small metrics sidecar; LogisticRegression on distance_km + prep_minutes. Training is only a publisher — must not import, call, or wait on inference.
 
 Keep the change scoped, add/update relevant tests, and run them as you work.
 
-When implementation is complete, do not replace the manual smoke-test instructions in plan.md. Make sure they still match the actual commands and behavior. If details changed enough that the smoke test is no longer accurate, update only that section so it is runnable.
+When implementation is complete, do not overwrite docs/plan.md or earlier stage sections. Make sure this stage's Manual Smoke Test still matches the actual commands and behavior. If details changed, update only that stage's Manual Smoke Test section so it is runnable.
 """,
         test="""\
 Review the current Stage 3 training implementation as if this were a PR you did not author.
 
-Read plan.md first for intended behavior, architecture, automated tests, and Manual Smoke Test.
+Read docs/plan.md first (this stage's section) for intended behavior, architecture, automated tests, and Manual Smoke Test.
 
 Verify retrain trigger, checkpoint + metrics under data/models/, LogisticRegression features, and hard isolation from inference. Strengthen coverage, run the full suite, fix real bugs.
 
-Confirm the documented Manual Smoke Test is still accurate and runnable (artifact-on-disk demo, not inference). Sync plan.md if commands changed.
+Confirm the documented Manual Smoke Test is still accurate and runnable (artifact-on-disk demo, not inference). Sync this stage's section in docs/plan.md if commands changed — never wipe earlier stages.
 
 Summarize findings, changes, and suite status.
 """,
@@ -343,7 +363,7 @@ Summarize findings, changes, and suite status.
         plan=f"""\
 Training should already be publishing versioned checkpoints under data/models/, with features under data/features/. I want inference as a completely separate consumer of those artifacts.
 
-Inspect the repository and write the implementation plan to plan.md.
+Inspect the repository and append this stage's implementation plan to docs/plan.md (create the file if missing; never overwrite earlier stages).
 
 Include:
 - what we're changing
@@ -361,23 +381,23 @@ For the Manual Smoke Test, this is the strongest classroom beat. Prefer separate
 
 {_PLAN_MD_SHAPE}
 
-Do not implement the feature yet. Only write plan.md, then stop.
+Do not implement the feature yet. Only update docs/plan.md (append this stage), then stop.
 """,
         execute="""\
 We're implementing Stage 4 of the DashBite pipeline (inference / read path).
 
-Inspect the repository and read plan.md first. Treat it as the architecture and behavior handoff from the planning agent — including the Manual Smoke Test that proves train/infer isolation.
+Inspect the repository and read docs/plan.md first (focus on this stage's section; earlier stages are context). Treat it as the architecture and behavior handoff from the planning agent — including the Manual Smoke Test that proves train/infer isolation.
 
 Build inference as a completely independent consumer: newest checkpoint on disk; score new feature rows; write order_id, late_probability, predicted_late, checkpoint_id under data/predictions/. If training isn't running, keep using the latest checkpoint; if none exists, wait cleanly. Do not import training or trigger retraining.
 
 Keep the change scoped, add/update relevant tests, and run them as you work.
 
-When implementation is complete, do not replace the manual smoke-test instructions in plan.md. Make sure they still match the actual commands and behavior. If details changed enough that the smoke test is no longer accurate, update only that section so it is runnable.
+When implementation is complete, do not overwrite docs/plan.md or earlier stage sections. Make sure this stage's Manual Smoke Test still matches the actual commands and behavior. If details changed, update only that stage's Manual Smoke Test section so it is runnable.
 """,
         test="""\
 Review the current inference stage as if this were a PR you did not author.
 
-Read plan.md first to understand the intended behavior, architecture, automated test strategy, and manual smoke test — especially the isolation demo.
+Read docs/plan.md first (this stage's section) to understand the intended behavior, architecture, automated test strategy, and manual smoke test — especially the isolation demo.
 
 Verify:
 - newest checkpoint selection
@@ -388,7 +408,7 @@ Verify:
 
 Add or improve unit, regression, and integration tests where meaningful. Run the full suite. Fix underlying bugs rather than weakening legitimate tests.
 
-Inspect whether the documented Manual Smoke Test is still accurate and runnable. Keep plan.md synchronized if commands or outputs changed.
+Inspect whether the documented Manual Smoke Test is still accurate and runnable. Keep this stage's section in docs/plan.md synchronized if commands or outputs changed — never wipe earlier stages.
 
 Finish with a short summary of what you checked, anything you changed, and whether the full suite passes.
 """,
@@ -396,11 +416,11 @@ Finish with a short summary of what you checked, anything you changed, and wheth
     StagePrompts(
         number=5,
         title="ML Dashboard",
-        teach="Model Pulse: a lightweight view for someone watching the ML system.",
+        teach="Model Pulse: claim-first charts — volume over time, readable score bands, ranked field failures.",
         plan=f"""\
-Features and predictions should already be flowing under data/features/ and data/predictions/. I'd like a lightweight Model Pulse view for someone watching the ML system.
+Features and predictions should already be flowing under data/features/ and data/predictions/. I'd like a lightweight Model Pulse view for someone watching whether the late-prediction system is healthy.
 
-Inspect the repository and write the implementation plan to plan.md.
+Inspect the repository and append this stage's implementation plan to docs/plan.md (create the file if missing; never overwrite earlier stages).
 
 Include:
 - what we're changing
@@ -410,35 +430,44 @@ Include:
 - a manual smoke test I can run live from the terminal after implementation
 
 Non-negotiables:
-- helpers for sample volume (from features) and a score summary (from late_probability)
-- sparse Streamlit page; dashboards consume data/, don't own pipeline logic
-- no business/ops KPIs in this stage
+- pure helpers: sample volume, volume-over-time (timestamp buckets), score summary, and a score histogram with human-readable bin labels (e.g. `0.0–0.1`)
+- Model Pulse UI (sparse Streamlit; reads data/ only):
+  - ~3 KPIs max (e.g. samples, drop rate, mean late score) — not a wall of metrics
+  - hero chart: orders over time (recent window, e.g. last 60 minutes) with an active title stating the finding
+  - score chart: readable probability bands + a clear nod to the 0.5 decision region — never raw Interval objects on the axis
+  - field failures: one horizontal bar chart sorted by count; no duplicate dataframe under it
+  - drop redundant throughput multi-series if it only retells drop rate
+- no business/ops KPIs (late rate, $ at risk) in this stage
 
-For the Manual Smoke Test, launch Streamlit via the Makefile (`make dashboard` or the project's documented target). Students should visibly see sample volume, score summary, and one or two charts. Keep enough terminal output to show Streamlit is reading existing pipeline artifacts.
+{_DASHBOARD_VIZ}
+
+For the Manual Smoke Test, launch via `make dashboard`. Students should see active chart titles, a moving volume series, readable score bands, and ranked field failures — not undecodable axis junk. Keep terminal output showing Streamlit is reading pipeline artifacts.
 
 {_PLAN_MD_SHAPE}
 
-Do not implement the feature yet. Only write plan.md, then stop.
+Do not implement the feature yet. Only update docs/plan.md (append this stage), then stop.
 """,
         execute="""\
 We're implementing Stage 5 of the DashBite pipeline (ML / Model Pulse dashboard).
 
-Inspect the repository and read plan.md first. Treat it as the architecture and behavior handoff from the planning agent — including the Manual Smoke Test.
+Inspect the repository and read docs/plan.md first (focus on this stage's section; earlier stages are context). Treat it as the architecture and behavior handoff from the planning agent — including the Manual Smoke Test.
 
-Build pure helpers for sample volume and late_probability score summary, plus a sparse Streamlit page that reads data/features/ and data/predictions/. Leave ops KPIs for the next stage.
+Build tested helpers (sample volume, volume-over-time, score summary, score histogram with labels like `0.0–0.1`) and a claim-first Model Pulse page:
+- few KPIs; hero volume-over-time (recent window); readable score bands with a 0.5 cue; ranked horizontal field-failure bars; no duplicate tables; no ops KPIs
+- titles state findings; axes are human-readable; dashboards only read data/
 
-Keep the change scoped, add/update relevant tests (helpers especially), and run them as you work.
+Keep the change scoped, add/update helper tests, and run them as you work.
 
-When implementation is complete, do not replace the manual smoke-test instructions in plan.md. Make sure they still match the actual commands and behavior. If details changed enough that the smoke test is no longer accurate, update only that section so it is runnable.
+When implementation is complete, do not overwrite docs/plan.md or earlier stage sections. Make sure this stage's Manual Smoke Test still matches the actual commands and behavior. If details changed, update only that stage's Manual Smoke Test section so it is runnable.
 """,
         test="""\
 Review the current Stage 5 ML dashboard as if this were a PR you did not author.
 
-Read plan.md first for intended behavior, architecture, automated tests, and Manual Smoke Test.
+Read docs/plan.md first (this stage's section) for intended behavior, architecture, automated tests, and Manual Smoke Test.
 
-Verify sample volume / score-summary helpers and that the UI only consumes existing artifacts. Strengthen helper tests, run the full suite, fix real issues.
+Verify helpers and that Model Pulse meets the viz bar: active titles, readable score bands (no Interval axis junk), recent volume-over-time, ranked failures without a duplicate table, ~3 KPIs, UI only consumes artifacts. Strengthen helper tests, run the full suite, fix real issues.
 
-Confirm the documented Manual Smoke Test (Streamlit launch + what to watch for) is still accurate. Sync plan.md if commands changed.
+Confirm the documented Manual Smoke Test (Streamlit launch + what to watch for) is still accurate. Sync this stage's section in docs/plan.md if commands changed — never wipe earlier stages.
 
 Summarize findings, changes, and suite status.
 """,
@@ -446,11 +475,11 @@ Summarize findings, changes, and suite status.
     StagePrompts(
         number=6,
         title="Business Dashboard",
-        teach="Ops Control: same pipeline, different audience — late rate and at-risk value.",
+        teach="Ops Control: one business claim — dollars at risk — plus late rate; table is drill-down only.",
         plan=f"""\
-Same underlying pipeline, different audience. Model Pulse should already exist; next is a simple Ops Control view beside it.
+Same underlying pipeline, different audience. Model Pulse should already exist; next is a simple Ops Control view beside it for someone watching delivery risk in dollars.
 
-Inspect the repository and write the implementation plan to plan.md.
+Inspect the repository and append this stage's implementation plan to docs/plan.md (create the file if missing; never overwrite earlier stages).
 
 Include:
 - what we're changing
@@ -460,37 +489,69 @@ Include:
 - a manual smoke test I can run live from the terminal after implementation
 
 Non-negotiables:
-- late_rate from labeled features
-- at-risk order value (sum of order_value where predicted_late)
-- keep Model Pulse intact; dashboards still only read data/
+- helpers: late_rate from labeled features; at-risk order value (sum of order_value where predicted_late)
+- Ops Control UI:
+  - lead with the business claim (at-risk $) in an active title
+  - two primary metrics: at-risk value + late rate — don't reintroduce Model Pulse charts here
+  - recent predictions table is drill-down only (few columns, rounded scores) — not the main visual
+- keep Model Pulse intact and claim-first; dashboards still only read data/
 
-For the Manual Smoke Test, launch or refresh the Streamlit view with `make dashboard` (or the documented make target) and show late rate + at-risk order value. Emphasize it reads the same pipeline outputs as Model Pulse for a different audience.
+{_DASHBOARD_VIZ}
+
+For the Manual Smoke Test, launch or refresh with `make dashboard` and show the at-risk $ claim + late rate. Emphasize same pipeline outputs, different audience than Model Pulse.
 
 {_PLAN_MD_SHAPE}
 
-Do not implement the feature yet. Only write plan.md, then stop.
+Do not implement the feature yet. Only update docs/plan.md (append this stage), then stop.
 """,
         execute="""\
 We're implementing Stage 6 of the DashBite pipeline (business / Ops Control dashboard).
 
-Inspect the repository and read plan.md first. Treat it as the architecture and behavior handoff from the planning agent — including the Manual Smoke Test.
+Inspect the repository and read docs/plan.md first (focus on this stage's section; earlier stages are context). Treat it as the architecture and behavior handoff from the planning agent — including the Manual Smoke Test.
 
-Add late_rate and at-risk order value with an Ops Control view beside Model Pulse. Don't break Model Pulse. Dashboards read data/; they don't own the pipeline.
+Add late_rate and at-risk order value with an Ops Control view beside Model Pulse:
+- lead with dollars-at-risk as the claim; late rate beside it; predictions table as drill-down only
+- don't break Model Pulse's claim-first layout; dashboards read data/ only
 
 Keep the change scoped, add/update relevant tests, and run them as you work.
 
-When implementation is complete, do not replace the manual smoke-test instructions in plan.md. Make sure they still match the actual commands and behavior. If details changed enough that the smoke test is no longer accurate, update only that section so it is runnable.
+When implementation is complete, do not overwrite docs/plan.md or earlier stage sections. Make sure this stage's Manual Smoke Test still matches the actual commands and behavior. If details changed, update only that stage's Manual Smoke Test section so it is runnable.
 """,
         test="""\
 Review the current Stage 6 business dashboard as if this were a PR you did not author — final gate for the demo pipeline.
 
-Read plan.md first for intended behavior, architecture, automated tests, and Manual Smoke Test.
+Read docs/plan.md first (this stage's section) for intended behavior, architecture, automated tests, and Manual Smoke Test.
 
-Verify late_rate / at-risk helpers, Model Pulse still healthy, dashboards remain thin consumers. Strengthen coverage, run the full suite, fix real bugs.
+Verify late_rate / at-risk helpers, Ops Control leads with the $ claim (table is secondary), Model Pulse still meets the viz bar, dashboards remain thin consumers. Strengthen coverage, run the full suite, fix real bugs.
 
-Confirm the documented Manual Smoke Test is still accurate and runnable. Sync plan.md if commands changed. A short README note on running stages separately is a nice extra if missing.
+Confirm the documented Manual Smoke Test is still accurate and runnable. Sync this stage's section in docs/plan.md if commands changed — never wipe earlier stages. A short README note on running stages separately is a nice extra if missing.
 
 Finish with a wrap-up of what you verified, what you changed, and whether the full suite passes.
 """,
     ),
 )
+
+WRAP_UP_TITLE = "Wrap-up — Run the full stack"
+WRAP_UP_TEACH = (
+    "After the stages are built: start every process as a persistent background job via Make."
+)
+WRAP_UP_PROMPT = """\
+We've finished the stage-by-stage DashBite build. Help me run the full application so each stage stays up as a persistent background job.
+
+Inspect the repository (especially the Makefile and pipeline entrypoints). Prefer Makefile orchestration — do not invent ad-hoc one-off shell recipes as the public interface.
+
+I want:
+- `make run` starts simulator, preprocess, train, infer, and the dashboard as durable background processes (survive the shell that launched them)
+- logs under `.logs/` and PIDs under `.logs/pids/` (or the project's existing convention)
+- `make stop` cleanly stops the whole stack
+- optional per-stage background targets are fine if they stay Make-friendly (e.g. document `make simulator` in foreground vs the background stack via `make run`)
+- default poll cadence is 15 seconds (`POLL_INTERVAL_SECONDS=15`); keep that as the classroom default
+- dashboard on :8501; remind me how to open Model Pulse and Ops Control
+
+Also append a short section to docs/plan.md (do not overwrite earlier stages) with a Manual Smoke Test for the full stack:
+- Terminal: `make run` (and where to watch logs)
+- Watch for: new files under data/raw → data/features → data/predictions, and http://localhost:8501 updating
+- Stop: `make stop`
+
+Implement/fix whatever is needed so `make run` / `make stop` are reliable, then give me the exact commands to start and stop the demo.
+"""

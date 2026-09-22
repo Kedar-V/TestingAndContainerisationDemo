@@ -12,7 +12,7 @@ STREAMLIT   := $(BIN)/streamlit
 # Demo-friendly defaults (override on the command line)
 export TRAIN_EVERY_N_EVENTS    ?= 50
 export BATCH_SIZE              ?= 20
-export POLL_INTERVAL_SECONDS   ?= 2.0
+export POLL_INTERVAL_SECONDS   ?= 15.0
 export CORRUPT_BATCH_RATE      ?= 0.25
 export PYTHONPATH              := $(CURDIR)
 
@@ -90,13 +90,19 @@ prompts-static: install
 
 run: install stop
 	@mkdir -p $(LOG_DIR) $(PIDS)
-	@echo "Starting pipeline (logs in $(LOG_DIR)/)..."
-	@nohup $(PY) -m pipeline.simulator >$(LOG_DIR)/simulator.log 2>&1 & echo $$! > $(PIDS)/simulator.pid
-	@nohup $(PY) -m pipeline.preprocess >$(LOG_DIR)/preprocess.log 2>&1 & echo $$! > $(PIDS)/preprocess.pid
-	@nohup $(PY) -m pipeline.train >$(LOG_DIR)/train.log 2>&1 & echo $$! > $(PIDS)/train.pid
-	@nohup $(PY) -m pipeline.infer >$(LOG_DIR)/infer.log 2>&1 & echo $$! > $(PIDS)/infer.pid
-	@nohup env PYTHONPATH=$(CURDIR) $(STREAMLIT) run pipeline/dashboard/app.py \
-		--server.headless true --server.port 8501 >$(LOG_DIR)/dashboard.log 2>&1 & echo $$! > $(PIDS)/dashboard.pid
+	@echo "Starting pipeline (logs in $(LOG_DIR)/, poll=$(POLL_INTERVAL_SECONDS)s)..."
+	@PYTHONUNBUFFERED=1 nohup $(PY) -m pipeline.simulator \
+		>$(LOG_DIR)/simulator.log 2>&1 </dev/null & echo $$! > $(PIDS)/simulator.pid
+	@PYTHONUNBUFFERED=1 nohup $(PY) -m pipeline.preprocess \
+		>$(LOG_DIR)/preprocess.log 2>&1 </dev/null & echo $$! > $(PIDS)/preprocess.pid
+	@PYTHONUNBUFFERED=1 nohup $(PY) -m pipeline.train \
+		>$(LOG_DIR)/train.log 2>&1 </dev/null & echo $$! > $(PIDS)/train.pid
+	@PYTHONUNBUFFERED=1 nohup $(PY) -m pipeline.infer \
+		>$(LOG_DIR)/infer.log 2>&1 </dev/null & echo $$! > $(PIDS)/infer.pid
+	@PYTHONUNBUFFERED=1 nohup env PYTHONPATH=$(CURDIR) $(STREAMLIT) run pipeline/dashboard/app.py \
+		--server.headless true --server.port 8501 \
+		>$(LOG_DIR)/dashboard.log 2>&1 </dev/null & echo $$! > $(PIDS)/dashboard.pid
+	@sleep 1
 	@echo "Dashboard: http://localhost:8501"
 	@echo "Stop with: make stop"
 

@@ -10,7 +10,7 @@ from pipeline.config import DEFAULT_CONFIG
 EXPECTED_DEFAULTS = {
     "train_every_n_events": 2000,
     "batch_size": 50,
-    "poll_interval_seconds": 2.0,
+    "poll_interval_seconds": 15.0,
     "feature_columns": ("distance_km", "prep_minutes"),
     "random_seed": 42,
     "corrupt_batch_rate": 0.25,

@@ -117,7 +117,7 @@ streamlit run pipeline/dashboard/app.py
 |----------|---------|---------|
 | `TRAIN_EVERY_N_EVENTS` | `2000` | Retrain after this many **new** labeled rows |
 | `BATCH_SIZE` | `50` | Orders per simulator tick |
-| `POLL_INTERVAL_SECONDS` | `2.0` | Sleep between polls/ticks |
+| `POLL_INTERVAL_SECONDS` | `15.0` | Sleep between polls/ticks |
 | `RANDOM_SEED` | `42` | Training seed |
 | `CORRUPT_BATCH_RATE` | `0.25` | Fraction of batches that include NaNs / bad types |
 
