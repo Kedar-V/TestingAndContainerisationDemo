@@ -14,9 +14,9 @@ from pipeline.prompts.content import (
 )
 
 PHASES = (
-    ("plan", "Think it through", "Fresh architect chat — write plan.md"),
+    ("plan", "Think it through", "Fresh architect chat — write plan.md (+ Manual Smoke Test)"),
     ("execute", "Build it", "Fresh implementer chat — read plan.md, then build"),
-    ("test", "Check it", "Fresh reviewer chat — inspect & verify"),
+    ("test", "Check it", "Fresh reviewer chat — verify code, tests & smoke-test docs"),
 )
 
 
@@ -166,11 +166,12 @@ def main() -> None:
         <div class="dpb-how">
           <strong>How to use in the demo:</strong>
           Each step is intentionally run in a <em>fresh</em> Cursor chat.
-          Think it through acts like an architect (writes <code>plan.md</code>),
+          Think it through acts like an architect (writes <code>plan.md</code>,
+          including a <em>Manual Smoke Test</em>),
           Build it like an implementer (reads <code>plan.md</code> first), and
-          Check it like a reviewer. Each agent inspects the repository as it exists
-          at that point — not a prior conversation. Wait for full <code>pytest</code>
-          green before starting the next stage's architect chat.
+          Check it like a reviewer. After Build, run the smoke test from the terminal
+          with the class before opening the reviewer chat. Wait for full
+          <code>pytest</code> green before the next stage's architect chat.
         </div>
         """,
         unsafe_allow_html=True,
@@ -181,15 +182,15 @@ def main() -> None:
         <div class="dpb-roles">
           <div class="dpb-role">
             <strong>ARCHITECT</strong>
-            Fresh chat. Inspect the repo, propose the change, write it to plan.md — don't implement yet.
+            Fresh chat. Inspect the repo, write plan.md (design + automated tests + Manual Smoke Test) — don't implement.
           </div>
           <div class="dpb-role">
             <strong>IMPLEMENTER</strong>
-            Fresh chat. Read plan.md first, then implement against the current repo.
+            Fresh chat. Read plan.md first, then build. Keep the smoke-test section runnable.
           </div>
           <div class="dpb-role">
             <strong>REVIEWER</strong>
-            Fresh chat. Assume someone else wrote it. Inspect critically, strengthen tests, verify the suite.
+            Fresh chat. Read plan.md, verify code/tests, and confirm the Manual Smoke Test still matches reality.
           </div>
         </div>
         """,
@@ -219,6 +220,14 @@ def main() -> None:
                 with tab:
                     st.caption(f"{caption} — click the copy icon on the code block")
                     st.code(_prompt_text(stage, key), language="markdown")
+                    if key == "execute":
+                        st.markdown(
+                            '<p class="dpb-stage-meta" style="margin-top:0.75rem;">'
+                            "<strong>Live with the class:</strong> "
+                            "<code>Build → run plan.md smoke test manually → Check</code>"
+                            "</p>",
+                            unsafe_allow_html=True,
+                        )
 
     st.divider()
     st.markdown("## Take the workflow with you")
@@ -257,8 +266,8 @@ Install the `dev-cycle` skill, then start three fresh chats for a feature:
 
     st.divider()
     st.caption(
-        "Teaching point: plan.md, the repo, filesystem contracts, and automated tests "
-        "let independent agents collaborate without shared chat history. "
+        "Teaching point: plan.md (with Manual Smoke Test), the repo, filesystem contracts, "
+        "and automated tests let independent agents collaborate without shared chat history. "
         "Full pytest green before the next stage. Local board: make prompts → :8502."
     )
 
