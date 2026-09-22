@@ -157,7 +157,6 @@ def main() -> None:
             <span class="dpb-chip">THINK · ARCHITECT</span>
             <span class="dpb-chip">BUILD · IMPLEMENTER</span>
             <span class="dpb-chip">CHECK · REVIEWER</span>
-            <span class="dpb-chip">fresh chat each time</span>
           </div>
         </div>
         """,

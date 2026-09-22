@@ -354,7 +354,6 @@ def build() -> Path:
         <span class="chip">THINK · ARCHITECT</span>
         <span class="chip">BUILD · IMPLEMENTER</span>
         <span class="chip">CHECK · REVIEWER</span>
-        <span class="chip">fresh chat each time</span>
       </div>
     </div>
 
