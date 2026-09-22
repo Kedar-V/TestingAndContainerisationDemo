@@ -141,10 +141,10 @@ def main() -> None:
         """
         <div class="dpb-how">
           <strong>How to use in the demo:</strong>
-          Start with the <em>Base plan</em> (pipeline diagram) → agree the architecture with the room →
-          then for each stage: paste <em>Plan</em> → <em>Execute</em> → <em>Test</em> → wait for full
-          <code>pytest</code> green → next stage. Use the copy icon on each prompt block. Attendees
-          copy the same prompts and build along.
+          Attendees start from an <em>empty git repo</em>. Start with the <em>Base plan</em>
+          (pipeline diagram) → agree the architecture → then for each stage: paste <em>Plan</em> →
+          <em>Execute</em> → <em>Test</em> → wait for full <code>pytest</code> green → next stage.
+          Use the copy icon on each prompt block. Everyone builds along from scratch.
         </div>
         """,
         unsafe_allow_html=True,

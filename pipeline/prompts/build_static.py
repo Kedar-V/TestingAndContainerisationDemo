@@ -243,9 +243,10 @@ def build() -> Path:
 
     <div class="how">
       <strong>How to use in the demo:</strong>
-      Start with the <em>Base plan</em> (pipeline diagram) → agree the architecture with the room →
-      then for each stage: paste <em>Plan</em> → <em>Execute</em> → <em>Test</em> → wait for full
-      <code>pytest</code> green → next stage. Attendees copy the same prompts and build along.
+      Attendees start from an <em>empty git repo</em>. Start with the <em>Base plan</em>
+      (pipeline diagram) → agree the architecture → then for each stage: paste <em>Plan</em> →
+      <em>Execute</em> → <em>Test</em> → wait for full <code>pytest</code> green → next stage.
+      Everyone builds along from scratch.
     </div>
 
     <div class="toolbar">

@@ -4,6 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+# Shared framing: attendees build from scratch, not from a completed solution repo.
+EMPTY_REPO = (
+    "Starting point: an EMPTY git repository (no pipeline code yet). "
+    "Build everything from scratch in this repo. "
+    "Do not assume a pre-built solution, reference implementation, or hidden starter files exist."
+)
+
 
 @dataclass(frozen=True)
 class StagePrompts:
@@ -19,15 +26,17 @@ class StagePrompts:
 BASE_PLAN_TITLE = "Base plan — Pipeline diagram"
 BASE_PLAN_TEACH = (
     "Agree the modular layout with the room: stages, data folders, and "
-    "train/infer isolation — before writing Stage 0."
+    "train/infer isolation — before writing Stage 0 in an empty repo."
 )
-BASE_PLAN = """\
+BASE_PLAN = f"""\
 You are helping design DashBite — a late-delivery ML pipeline demo built one stage at a time with agents (plan → execute → test).
+
+{EMPTY_REPO}
 
 BASE PLAN ONLY — do not write implementation code, create files, or start Stage 0 yet.
 
 Goal:
-Produce a short high-level plan whose centerpiece is an architecture diagram of the modular pipeline (file-based handoffs, no containers).
+Produce a short high-level plan whose centerpiece is an architecture diagram of the modular pipeline (file-based handoffs, no containers). The room will then implement it stage-by-stage into this empty repo.
 
 Use case:
 - Predict whether a food-delivery order will be late (`was_late`: 0/1).
@@ -61,13 +70,30 @@ Output:
 """
 
 
+def _prior_stages_note(through: int) -> str:
+    if through < 0:
+        return EMPTY_REPO
+    if through == 0:
+        return (
+            f"{EMPTY_REPO} "
+            "In this session you already built Stage 0 only — that is all that should exist in the repo."
+        )
+    return (
+        f"{EMPTY_REPO} "
+        f"In this session you already built Stages 0–{through} from scratch — "
+        "that is all that should exist; do not invent later-stage code early."
+    )
+
+
 STAGES: tuple[StagePrompts, ...] = (
     StagePrompts(
         number=0,
         title="Skeleton",
         teach="Project layout, shared config, and the pytest gate.",
-        plan="""\
+        plan=f"""\
 You are helping build DashBite — a late-delivery ML pipeline demo — one stage at a time.
+
+{_prior_stages_note(-1)}
 
 STAGE 0 — Skeleton (PLAN ONLY)
 Do not write implementation code yet. Produce a short plan for Stage 0 only.
@@ -82,6 +108,7 @@ Plan must cover:
 2. Data folders: data/raw, data/features, data/models, data/predictions, data/quality.
 3. Shared Config: TRAIN_EVERY_N_EVENTS (default 2000), BATCH_SIZE (default 50), overridable via env.
 4. Test harness: tests/unit, tests/regression, tests/integration, tests/fixtures + pytest markers.
+5. Minimal project glue you will need from an empty repo: requirements.txt, pytest.ini, README stub OK.
 
 Constraints:
 - 1–2 features only for this stage.
@@ -89,8 +116,9 @@ Constraints:
 - End with: files to create, public APIs, and what NOT to touch.
 
 Output: a concise bullet plan only.""",
-        execute="""\
+        execute=f"""\
 STAGE 0 — Skeleton (EXECUTE)
+{_prior_stages_note(-1)}
 Implement ONLY Stage 0 from the agreed plan. Do not implement later stages.
 
 Requirements:
@@ -100,15 +128,17 @@ Requirements:
    and ensure_data_dirs().
 3. Create the data/ folder tree (gitkeep OK) and tests/unit|regression|integration|fixtures.
 4. Wire pytest.ini with unit/regression/integration markers.
+5. Add requirements.txt with the minimal deps you will need (e.g. pytest now; pandas/sklearn later is OK if listed).
 
 Rules:
 - No simulator, preprocess, train, infer, or dashboard code.
 - Keep it tiny and importable: `from pipeline.config import load_config`.
-- Prefer matching the existing repo style if files already exist — fill gaps only.
+- Create files fresh — do not look for or depend on a pre-existing solution tree.
 
 Done when Stage 0 modules import cleanly and the project skeleton is in place.""",
-        test="""\
+        test=f"""\
 STAGE 0 — Skeleton (TEST)
+{_prior_stages_note(-1)}
 Add the Stage 0 test gate, then run the full suite. Do not start Stage 1 until green.
 
 Add:
@@ -128,8 +158,10 @@ Rules:
         number=1,
         title="Simulator",
         teach="Timed synthetic orders land in data/raw/ (“new orders arrived”).",
-        plan="""\
-You are continuing DashBite Stage by Stage. Stage 0 is done.
+        plan=f"""\
+You are continuing DashBite stage by stage in the same empty-started repo.
+
+{_prior_stages_note(0)}
 
 STAGE 1 — Simulator / Intake (PLAN ONLY)
 Do not write implementation code yet. Produce a short plan for Stage 1 only.
@@ -149,8 +181,9 @@ Constraints:
 - File-based handoff only under data/raw/.
 
 Output: concise bullet plan — files, APIs, poll loop, and what NOT to touch.""",
-        execute="""\
+        execute=f"""\
 STAGE 1 — Simulator (EXECUTE)
+{_prior_stages_note(0)}
 Implement ONLY Stage 1 from the agreed plan. Do not implement later stages.
 
 Requirements:
@@ -165,8 +198,9 @@ Rules:
 - Keep generation deterministic enough to seed for tests (RANDOM_SEED).
 
 Done when data/raw/ fills while the simulator runs.""",
-        test="""\
+        test=f"""\
 STAGE 1 — Simulator (TEST)
+{_prior_stages_note(0)}
 Add Stage 1 tests, then run the full suite. Do not start Stage 2 until green.
 
 Add:
@@ -186,8 +220,10 @@ Rules:
         number=2,
         title="Preprocess",
         teach="Clean raw CSVs and write feature tables to data/features/.",
-        plan="""\
-You are continuing DashBite. Stages 0–1 are done.
+        plan=f"""\
+You are continuing DashBite stage by stage in the same empty-started repo.
+
+{_prior_stages_note(1)}
 
 STAGE 2 — Preprocess (PLAN ONLY)
 Do not write implementation code yet. Produce a short plan for Stage 2 only.
@@ -207,8 +243,9 @@ Constraints:
 - Earlier stages must keep working via file handoffs.
 
 Output: concise bullet plan — files, clean rules, feature defs, handoff, what NOT to touch.""",
-        execute="""\
+        execute=f"""\
 STAGE 2 — Preprocess (EXECUTE)
+{_prior_stages_note(1)}
 Implement ONLY Stage 2 from the agreed plan. Do not implement later stages.
 
 Requirements:
@@ -223,8 +260,9 @@ Rules:
 - Keep feature engineering to hour + is_peak only.
 
 Done when feature CSVs appear as raw files land.""",
-        test="""\
+        test=f"""\
 STAGE 2 — Preprocess (TEST)
+{_prior_stages_note(1)}
 Add Stage 2 tests, then run the full suite. Do not start Stage 3 until green.
 
 Add:
@@ -244,8 +282,10 @@ Rules:
         number=3,
         title="Train",
         teach="Retrain when enough new labels arrive; write checkpoints only.",
-        plan="""\
-You are continuing DashBite. Stages 0–2 are done.
+        plan=f"""\
+You are continuing DashBite stage by stage in the same empty-started repo.
+
+{_prior_stages_note(2)}
 
 STAGE 3 — Training (PLAN ONLY)
 Do not write implementation code yet. Produce a short plan for Stage 3 only.
@@ -265,8 +305,9 @@ Constraints:
 - Do not implement infer or dashboards.
 
 Output: concise bullet plan — trigger logic, checkpoint naming, isolation rules, what NOT to touch.""",
-        execute="""\
+        execute=f"""\
 STAGE 3 — Train (EXECUTE)
+{_prior_stages_note(2)}
 Implement ONLY Stage 3 from the agreed plan. Do not implement later stages.
 
 Requirements:
@@ -281,8 +322,9 @@ Hard rules:
 - Train only writes checkpoints; it does not notify inference.
 
 Done when the first checkpoint appears after N new labeled rows.""",
-        test="""\
+        test=f"""\
 STAGE 3 — Train (TEST)
+{_prior_stages_note(2)}
 Add Stage 3 tests, then run the full suite. Do not start Stage 4 until green.
 
 Add:
@@ -302,8 +344,10 @@ Rules:
         number=4,
         title="Infer",
         teach="Score with the newest checkpoint; never depends on train being alive.",
-        plan="""\
-You are continuing DashBite. Stages 0–3 are done.
+        plan=f"""\
+You are continuing DashBite stage by stage in the same empty-started repo.
+
+{_prior_stages_note(3)}
 
 STAGE 4 — Inference (PLAN ONLY)
 Do not write implementation code yet. Produce a short plan for Stage 4 only.
@@ -323,8 +367,9 @@ Constraints:
 - Keep output schema minimal and stable for tests.
 
 Output: concise bullet plan — newest-checkpoint selection, output columns, isolation rules, what NOT to touch.""",
-        execute="""\
+        execute=f"""\
 STAGE 4 — Infer (EXECUTE)
+{_prior_stages_note(3)}
 Implement ONLY Stage 4 from the agreed plan. Do not implement later stages.
 
 Requirements:
@@ -340,8 +385,9 @@ Hard rules:
 - Do not require train to be running.
 
 Done when predictions grow whenever a checkpoint and new features exist.""",
-        test="""\
+        test=f"""\
 STAGE 4 — Infer (TEST)
+{_prior_stages_note(3)}
 Add Stage 4 tests, then run the full suite. Do not start Stage 5 until green.
 
 Add:
@@ -362,8 +408,10 @@ Rules:
         number=5,
         title="ML Dashboard",
         teach="Model Pulse: sample volume and score distribution helpers.",
-        plan="""\
-You are continuing DashBite. Stages 0–4 are done.
+        plan=f"""\
+You are continuing DashBite stage by stage in the same empty-started repo.
+
+{_prior_stages_note(4)}
 
 STAGE 5 — ML monitoring dashboard (PLAN ONLY)
 Do not write implementation code yet. Produce a short plan for Stage 5 only.
@@ -384,8 +432,9 @@ Constraints:
 - Prefer helpers that pytest can exercise with fixtures.
 
 Output: concise bullet plan — helpers, page widgets, files, what NOT to touch.""",
-        execute="""\
+        execute=f"""\
 STAGE 5 — ML Dashboard (EXECUTE)
+{_prior_stages_note(4)}
 Implement ONLY Stage 5 from the agreed plan. Do not implement Stage 6 business KPIs.
 
 Requirements:
@@ -400,8 +449,9 @@ Rules:
 - Keep the page sparse — teaching clarity over polish.
 
 Done when Model Pulse reads live feature/prediction files.""",
-        test="""\
+        test=f"""\
 STAGE 5 — ML Dashboard (TEST)
+{_prior_stages_note(4)}
 Add Stage 5 tests, then run the full suite. Do not start Stage 6 until green.
 
 Add:
@@ -421,8 +471,10 @@ Rules:
         number=6,
         title="Business Dashboard",
         teach="Ops Control: late rate and orders-at-risk value.",
-        plan="""\
-You are continuing DashBite. Stages 0–5 are done.
+        plan=f"""\
+You are continuing DashBite stage by stage in the same empty-started repo.
+
+{_prior_stages_note(5)}
 
 STAGE 6 — Business dashboard (PLAN ONLY)
 Do not write implementation code yet. Produce a short plan for Stage 6 only.
@@ -441,8 +493,9 @@ Constraints:
 - No Docker, Kafka, Spark, MLflow, or drift libraries.
 
 Output: concise bullet plan — helpers, page, files, what NOT to touch.""",
-        execute="""\
+        execute=f"""\
 STAGE 6 — Business Dashboard (EXECUTE)
+{_prior_stages_note(5)}
 Implement ONLY Stage 6 from the agreed plan.
 
 Requirements:
@@ -456,8 +509,9 @@ Rules:
 - Prefer pure helpers that unit tests can call.
 
 Done when Ops Control shows business KPIs from the same data folders.""",
-        test="""\
+        test=f"""\
 STAGE 6 — Business Dashboard (TEST)
+{_prior_stages_note(5)}
 Add Stage 6 tests, then run the full suite. Pipeline stages are complete when green.
 
 Add:
