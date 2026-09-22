@@ -20,7 +20,7 @@ BASE_PLAN_TEACH = (
     "Warm up: one shared mental model before anyone opens an agent chat on code."
 )
 BASE_PLAN = """\
-We're about to build a small ML pipeline together. Before anyone touches code, help me sketch the system so everyone in the room has the same mental model.
+We're about to build a small ML pipeline together. Before anyone touches application code, help me sketch the system so everyone in the room has the same mental model.
 
 The product story is DashBite: food-delivery orders come in, and we want to predict whether an order will be late. Keep the raw fields short — order_id, timestamp, distance_km, prep_minutes, order_value, was_late.
 
@@ -34,7 +34,7 @@ Architecturally I want something modular and demo-friendly:
 
 Sketch a Mermaid flowchart (left-to-right is fine) that captures that story, including the train write path and the infer read path. Then give me a few short bullets on the teaching beats we should keep repeating as we build.
 
-Don't create files yet — just the diagram and the shared picture for the room.
+Write that diagram and the short bullets into plan.md at the repo root so later chats can find it. Don't implement the pipeline yet — plan.md only.
 """
 
 
@@ -54,12 +54,14 @@ Non-negotiables for this demo:
 - config defaults include TRAIN_EVERY_N_EVENTS=2000 and BATCH_SIZE=50, overridable from the environment
 - path helpers that resolve those data/ subfolders and can create them
 
-Don't change any files. Walk me through the implementation you would recommend and how you'd smoke-test it.
+Don't implement the code yet. Write your recommended approach and how you'd smoke-test it into plan.md (replace whatever is there — this stage owns that file now). Then stop so an implementer can pick it up.
 """,
         execute="""\
 We're adding the Stage 0 skeleton for the DashBite pipeline.
 
-Inspect the current repo first and fit this into whatever is already there.
+Start by reading plan.md — that was written by the architect chat for this stage. Treat it as the agreed approach unless something in the repo clearly conflicts; if it conflicts, say so briefly and follow the safer path that still meets the constraints below.
+
+Inspect the current repo and fit this into whatever is already there.
 
 Build the foundation: a `pipeline` package with shared config and path helpers, the data/ folders (raw, features, models, predictions, quality), and a pytest setup with unit / regression / integration markers. Config defaults should include TRAIN_EVERY_N_EVENTS=2000 and BATCH_SIZE=50, overridable from the environment.
 
@@ -70,7 +72,7 @@ Keep the implementation small. Implement it and run the relevant tests when you'
         test="""\
 Review the current Stage 0 skeleton as if this were a PR you hadn't worked on.
 
-Inspect both the implementation and existing tests.
+Inspect both the implementation and existing tests. You can skim plan.md for intent, but judge the code and tests on their own merits.
 
 We expect shared config (including TRAIN_EVERY_N_EVENTS and BATCH_SIZE), path helpers for the data/ handoff folders, and a pytest layout with unit / regression / integration markers.
 
@@ -94,12 +96,14 @@ Non-negotiables:
 - columns: order_id, timestamp, distance_km, prep_minutes, order_value, was_late
 - runnable roughly as `python -m pipeline.simulator`, driven by shared batch size / poll interval
 
-We're not doing preprocess or training yet. Don't change any files — walk me through the approach and how you'd test it.
+We're not doing preprocess or training yet. Don't implement code — write the approach and how you'd test it into plan.md for this stage, then stop.
 """,
         execute="""\
 We're adding the simulator / intake stage to the DashBite pipeline.
 
-The skeleton (config, paths, data folders, pytest) should already exist. Inspect the repo first and follow those conventions.
+Read plan.md first — that's the architect's plan for this stage. Follow it unless the repo makes something impossible; call out any deviation briefly.
+
+The skeleton (config, paths, data folders, pytest) should already exist. Inspect the repo and follow those conventions.
 
 Build a process that periodically writes synthetic orders under data/raw/ with columns order_id, timestamp, distance_km, prep_minutes, order_value, was_late. Prefer live-feeling logs (“new orders arrived”). A bit of intentional messiness in some rows is fine. Drive batch size and poll interval from shared config, and make it runnable as `python -m pipeline.simulator` (or equivalent).
 
@@ -108,7 +112,7 @@ Keep this scoped to intake — don't implement preprocess or training. Run the r
         test="""\
 Review the current Stage 1 simulator as if this were a PR you hadn't worked on.
 
-Inspect the implementation and existing tests.
+Inspect the implementation and existing tests. plan.md is optional context for intent only.
 
 Expected behavior: synthetic orders land under data/raw/ with order_id, timestamp, distance_km, prep_minutes, order_value, was_late; intake is driven by shared config; it doesn't reach into features/models/predictions.
 
@@ -130,12 +134,14 @@ We need obviously invalid rows cleaned, hour and is_peak derived, and the result
 
 Keep this small. We're not building training yet. Stages should stay independent and talk through data/.
 
-Don't change any files. Walk me through the implementation you would recommend and how you'd test it.
+Don't implement yet. Capture your recommended approach and tests in plan.md, then stop for the implementer.
 """,
         execute="""\
 We're adding the preprocessing stage to the DashBite pipeline.
 
-Raw synthetic orders are already being written under data/raw/. Inspect the repo first and fit this into the patterns that are already there.
+Read plan.md first and treat it as the agreed design for this stage. If something in the repo conflicts, note it and stay aligned with the constraints below.
+
+Raw synthetic orders are already being written under data/raw/. Inspect the repo and fit this into the patterns that are already there.
 
 Build a preprocessing process that cleans obviously invalid rows, derives hour from the timestamp and an is_peak feature for lunch/dinner periods, and writes model-ready CSVs under data/features/. Keep was_late because training will use it later.
 
@@ -146,7 +152,7 @@ Keep the implementation small and consistent with the existing config/path helpe
         test="""\
 Review the current Stage 2 preprocess implementation as if this were a PR you hadn't worked on.
 
-Inspect both the code and the tests.
+Inspect both the code and the tests. plan.md is background only.
 
 We care that invalid rows are dropped, hour and is_peak exist, was_late is preserved, and outputs land under data/features/ without reaching into train/infer.
 
@@ -171,10 +177,12 @@ Non-negotiables:
 - checkpoint on disk (joblib is fine) plus a small metrics sidecar
 - threshold from TRAIN_EVERY_N_EVENTS
 
-Don't change any files yet. Walk me through the approach you'd take.
+Don't implement code. Write the plan into plan.md for this stage, then stop.
 """,
         execute="""\
 We're at the training stage of the DashBite pipeline. Clean labeled features are already being written under data/features/.
+
+Read plan.md first — implement from that architect plan. Flag briefly if you must diverge.
 
 Inspect the current repo and add the model's write path.
 
@@ -187,7 +195,7 @@ Fit this into the existing project conventions, implement it, and run the releva
         test="""\
 Review the current Stage 3 training implementation as if this were a PR you hadn't worked on.
 
-Inspect the code and tests.
+Inspect the code and tests. Use plan.md only as optional intent context.
 
 Focus on the retrain trigger, checkpoint (+ metrics) publish under data/models/, LogisticRegression on distance_km + prep_minutes, and hard isolation from inference (no import/call/wait).
 
@@ -211,12 +219,14 @@ Non-negotiables:
 - prediction columns: order_id, late_probability, predicted_late, checkpoint_id
 - never import training or trigger retraining
 
-Don't implement yet. Walk me through the change you'd make.
+Don't implement yet. Put the design and test ideas into plan.md, then stop.
 """,
         execute="""\
 We're adding inference to the DashBite pipeline. Training already publishes versioned model checkpoints under data/models/, and feature files arrive under data/features/.
 
-Inspect the existing implementation first.
+Read plan.md first and implement from that plan. Call out any necessary deviations briefly.
+
+Inspect the existing implementation as well.
 
 Build inference as a completely independent consumer of those artifacts. It should select the newest checkpoint on disk, score new feature rows, and write order_id, late_probability, predicted_late, and checkpoint_id under data/predictions/.
 
@@ -229,7 +239,7 @@ Implement this using the project's existing patterns and run the relevant tests.
         test="""\
 Review the current inference stage as if this were a PR you hadn't worked on.
 
-Inspect both the implementation and existing tests.
+Inspect both the implementation and existing tests. plan.md is optional background.
 
 The behavior we care most about is process isolation: inference should consume the newest checkpoint from data/models/ without importing or depending on the training process.
 
@@ -263,10 +273,12 @@ Non-negotiables:
 - helpers for sample volume (from features) and a score summary (from late_probability)
 - we're not building the business/ops view in this stage
 
-Don't change files yet. Walk me through what you'd add and how you'd test the helpers.
+Don't implement yet. Write the approach into plan.md, then stop.
 """,
         execute="""\
 We're adding the ML monitoring dashboard (Model Pulse) to DashBite.
+
+Read plan.md first and build from that architect plan.
 
 Feature and prediction files should already exist under data/features/ and data/predictions/. Inspect the repo and fit into existing load/path patterns.
 
@@ -277,7 +289,9 @@ Implement it and run the relevant tests (helpers especially).
         test="""\
 Review the current Stage 5 ML dashboard as if this were a PR you hadn't worked on.
 
-Inspect helpers, page wiring, and tests. We expect sample volume and score-summary helpers backed by data/features/ and data/predictions/, without inventing pipeline logic in the UI.
+Inspect helpers, page wiring, and tests. plan.md is optional intent context.
+
+We expect sample volume and score-summary helpers backed by data/features/ and data/predictions/, without inventing pipeline logic in the UI.
 
 Add meaningful unit/regression/integration coverage for the helpers (browser automation isn't required). Run the full suite; fix real issues rather than softening tests.
 
@@ -298,10 +312,12 @@ Non-negotiables:
 - at-risk order value (sum of order_value where predicted_late)
 - keep Model Pulse intact; dashboards still only read data/
 
-Don't change files yet. Walk me through the smallest clean addition.
+Don't implement yet. Capture the plan in plan.md, then stop for the implementer.
 """,
         execute="""\
 We're adding the business / Ops Control dashboard to DashBite.
+
+Read plan.md first and implement from it. Note briefly if you need to diverge.
 
 Model Pulse and the upstream feature/prediction outputs should already be in place. Inspect the repo and reuse existing loading patterns.
 
@@ -312,7 +328,9 @@ Implement it and run the relevant tests.
         test="""\
 Review the current Stage 6 business dashboard as if this were a PR you hadn't worked on — final gate for the demo pipeline.
 
-Inspect implementation and tests. We expect late_rate and at-risk order value helpers, Model Pulse still healthy, and dashboards remaining thin consumers of data/.
+Inspect implementation and tests. plan.md is optional background only.
+
+We expect late_rate and at-risk order value helpers, Model Pulse still healthy, and dashboards remaining thin consumers of data/.
 
 Strengthen coverage where useful, run the full suite across everything built so far, and fix underlying bugs rather than weakening tests. A short README note on running stages separately and gating on pytest is a nice extra if missing.
 

@@ -13,8 +13,8 @@ from pipeline.prompts.content import (
 )
 
 PHASES = (
-    ("plan", "Think it through", "Fresh architect chat — inspect & propose"),
-    ("execute", "Build it", "Fresh implementer chat — inspect & build"),
+    ("plan", "Think it through", "Fresh architect chat — write plan.md"),
+    ("execute", "Build it", "Fresh implementer chat — read plan.md, then build"),
     ("test", "Check it", "Fresh reviewer chat — inspect & verify"),
 )
 
@@ -165,7 +165,8 @@ def main() -> None:
         <div class="dpb-how">
           <strong>How to use in the demo:</strong>
           Each step is intentionally run in a <em>fresh</em> Cursor chat.
-          Think it through acts like an architect, Build it like an implementer, and
+          Think it through acts like an architect (writes <code>plan.md</code>),
+          Build it like an implementer (reads <code>plan.md</code> first), and
           Check it like a reviewer. Each agent inspects the repository as it exists
           at that point — not a prior conversation. Wait for full <code>pytest</code>
           green before starting the next stage's architect chat.
@@ -179,11 +180,11 @@ def main() -> None:
         <div class="dpb-roles">
           <div class="dpb-role">
             <strong>ARCHITECT</strong>
-            Fresh chat. Understand the current repo and propose the change — don't modify files yet.
+            Fresh chat. Inspect the repo, propose the change, write it to plan.md — don't implement yet.
           </div>
           <div class="dpb-role">
             <strong>IMPLEMENTER</strong>
-            Fresh chat. Understand the current repo and implement the requested behavior.
+            Fresh chat. Read plan.md first, then implement against the current repo.
           </div>
           <div class="dpb-role">
             <strong>REVIEWER</strong>
@@ -220,7 +221,7 @@ def main() -> None:
 
     st.divider()
     st.caption(
-        "Teaching point: a well-structured repo, filesystem contracts, and automated tests "
+        "Teaching point: plan.md, the repo, filesystem contracts, and automated tests "
         "let independent agents collaborate without shared chat history. "
         "Full pytest green before the next stage. Local board: make prompts → :8502."
     )
