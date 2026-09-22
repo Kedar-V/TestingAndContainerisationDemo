@@ -46,9 +46,13 @@ STAGES: tuple[StagePrompts, ...] = (
         plan="""\
 We have the big picture. Let's put down the smallest foundation we need before building anything interesting.
 
-I want a tiny project skeleton we can grow into: a pipeline package with shared config and path helpers, the usual data/ folders for handoffs, and a pytest setup with unit / regression / integration so every later stage has a gate.
+I want a tiny project skeleton we can grow into: a `pipeline` package with shared config and path helpers, data folders for raw / features / models / predictions / quality, and a pytest setup with unit / regression / integration markers so every later stage has a gate.
 
-Shared config should cover things like how often we retrain and batch size, preferably overridable from the environment. Beyond that, use your judgment for what's essential vs. premature.
+Non-negotiables for this demo (so we stay comparable across the room):
+- config defaults include TRAIN_EVERY_N_EVENTS=2000 and BATCH_SIZE=50, overridable from the environment
+- path helpers that resolve those data/ subfolders and can create them
+
+Beyond that, use your judgment for what's essential vs. premature.
 
 Take a look at what we already have (likely almost nothing) and propose the smallest clean foundation. Before changing anything, walk me through what you'd add and how you'd smoke-test it.
 """,
@@ -72,7 +76,11 @@ Then give me a short summary of what you verified.
         plan="""\
 The foundation is in place. Now I want the system to actually feel alive.
 
-Next up is a small intake process that periodically writes synthetic DashBite orders into data/raw/. Enough columns for the rest of the pipeline — ids, timestamp, distance, prep time, order value, late label. Logs should feel like “new orders arrived,” not like we're dumping batch files. It's fine if some rows are messy; preprocess can clean them later.
+Next up is a small intake process that periodically writes synthetic DashBite orders into data/raw/. Logs should feel like “new orders arrived,” not like we're dumping batch files. It's fine if some rows are messy; preprocess can clean them later.
+
+Non-negotiables so the rest of the pipeline lines up:
+- columns: order_id, timestamp, distance_km, prep_minutes, order_value, was_late
+- runnable as something like `python -m pipeline.simulator`, driven by shared batch size / poll interval
 
 Look at the repo first and propose the smallest simulator that fits what we already have. We're not doing preprocess or training yet.
 
@@ -98,9 +106,13 @@ Then summarize what you verified.
         plan="""\
 Raw orders are coming in now. Next I want to turn them into something the model can actually use.
 
-Take a look at what we already have and propose the smallest sensible preprocessing stage. We need to clean obviously bad rows, derive a couple of useful features, and write the result under data/features/ — including the late label so training can use it later. A lightweight quality log is nice if it helps dashboards, but don't overbuild.
+Take a look at what we already have and propose the smallest sensible preprocessing stage. Clean obviously bad rows, write under data/features/, and keep was_late so training can use it later. A lightweight quality log is nice if it helps dashboards, but don't overbuild.
 
-Keep it simple for the demo. We're not doing training yet. Stages should keep talking through files under data/.
+Non-negotiables for the demo:
+- derive exactly these two features: hour (from timestamp) and is_peak (lunch/dinner window)
+- stages keep talking through files under data/
+
+Keep it simple — we're not doing training yet.
 
 Before changing anything, tell me what you'd add or modify and how you'd test it.
 """,
@@ -124,9 +136,13 @@ Short summary of what you verified, please.
         plan="""\
 We have labeled feature rows now. Let's add the model's write path.
 
-I want the simplest training process that makes sense for this demo. It should retrain after enough new labeled examples and publish a versioned model artifact under data/models/ that another process can consume independently. Train should only write — it shouldn't import or call inference, and it shouldn't need scoring to be running.
+I want a training process that retrains after enough new labeled examples and publishes a versioned artifact under data/models/ that another process can consume independently. Train should only write — no importing or calling inference, and it shouldn't need scoring to be running.
 
-Keep the model intentionally boring; the architecture is what we care about. Look at the repo and propose the smallest clean approach.
+Non-negotiables so builds stay comparable:
+- boring model: LogisticRegression on distance_km + prep_minutes
+- checkpoint on disk (joblib is fine) plus a small metrics sidecar; threshold from TRAIN_EVERY_N_EVENTS
+
+The architecture lesson matters more than model cleverness. Look at the repo and propose the smallest clean approach.
 
 Before changing anything, walk me through what you'd do.
 """,
@@ -150,7 +166,12 @@ Then a short summary of what you verified.
         plan="""\
 We have training producing checkpoints now. I want inference to be a completely separate consumer of those checkpoints.
 
-Think through how you'd add that without coupling inference to the training process. If training is down, inference should still be able to use the latest model on disk. If no model exists yet, it should just wait cleanly. Score new feature rows and write predictions under data/predictions/ with enough columns that dashboards can use later.
+Think through how you'd add that without coupling inference to the training process. If training is down, inference should still use the latest model on disk. If no model exists yet, it should wait cleanly.
+
+Non-negotiables for the demo:
+- always pick the newest checkpoint under data/models/
+- write predictions under data/predictions/ with columns: order_id, late_probability, predicted_late, checkpoint_id
+- never import train or trigger retraining
 
 Look at the repo first and walk me through the change you'd make. Don't implement it yet.
 """,
@@ -174,9 +195,11 @@ Then tell me briefly what you verified.
         plan="""\
 Predictions are flowing. I'd like a lightweight view for someone watching the ML system.
 
-Propose the smallest Model Pulse-style dashboard that reads the outputs we already have under data/features/ and data/predictions/. Prefer pure helpers we can unit-test, with a sparse Streamlit page on top — volume and score shape are enough. Dashboards should consume existing outputs, not own pipeline logic.
+Propose the smallest Model Pulse-style dashboard that reads data/features/ and data/predictions/. Prefer pure helpers we can unit-test, with a sparse Streamlit page on top. Dashboards should consume existing outputs, not own pipeline logic.
 
-We're not building the business/ops view yet.
+Non-negotiables:
+- helpers for sample volume (from features) and a score summary (from late_probability)
+- we're not building the business/ops view yet
 
 Take a look at the repo and walk me through what you'd add before changing anything.
 """,
@@ -200,7 +223,11 @@ Short summary of what you checked.
         plan="""\
 Same underlying pipeline, different audience. Let's add a simple operational view.
 
-I want an Ops Control-style page beside Model Pulse: late rate and something like orders-at-risk value, derived from the features/predictions we already produce. Keep Model Pulse intact. Still: dashboards read data/, they don't become the pipeline.
+I want an Ops Control-style page beside Model Pulse. Keep Model Pulse intact. Still: dashboards read data/, they don't become the pipeline.
+
+Non-negotiables:
+- late_rate from labeled features
+- at-risk order value (sum of order_value where predicted_late)
 
 Look at what Stage 5 left us and propose the smallest clean addition. Before changing anything, walk me through it.
 """,
