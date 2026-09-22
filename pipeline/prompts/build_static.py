@@ -219,6 +219,31 @@ def build() -> Path:
     }}
     .copy-btn:hover {{ background: var(--border); }}
     .copy-btn.copied {{ background: var(--accent); border-color: var(--accent); }}
+    .roles {{
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }}
+    @media (max-width: 800px) {{
+      .roles {{ grid-template-columns: 1fr; }}
+    }}
+    .role {{
+      background: rgba(61, 143, 118, 0.08);
+      border: 1px solid rgba(61, 143, 118, 0.35);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      font-size: 0.9rem;
+      color: var(--text);
+    }}
+    .role strong {{
+      display: block;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.35rem;
+      color: var(--accent);
+    }}
     footer {{
       margin-top: 1.5rem;
       color: var(--muted);
@@ -230,23 +255,38 @@ def build() -> Path:
   <main>
     <div class="hero">
       <h1>DashBite</h1>
-      <p>Agent Prompt Board — paste one message at a time into the same Cursor chat.
-        Think it through → Build it → Check it, stage by stage, with the room.</p>
+      <p>Agent Prompt Board — Think it through → Build it → Check it as three
+        independent Cursor chats. The repo and tests are the shared source of truth.</p>
       <div class="chips">
-        <span class="chip">THINK IT THROUGH</span>
-        <span class="chip">BUILD IT</span>
-        <span class="chip">CHECK IT</span>
-        <span class="chip">same agent chat</span>
+        <span class="chip">THINK · ARCHITECT</span>
+        <span class="chip">BUILD · IMPLEMENTER</span>
+        <span class="chip">CHECK · REVIEWER</span>
+        <span class="chip">fresh chat each time</span>
       </div>
     </div>
 
     <div class="how">
       <strong>How to use in the demo:</strong>
-      Keep one Cursor agent conversation open. For each beat, paste
-      <em>Think it through</em> → review the proposal with the room → paste
-      <em>Build it</em> (short on purpose — the agent already has context) → paste
-      <em>Check it</em> → wait for full <code>pytest</code> green → next stage.
-      Attendees copy the same prompts and build along.
+      Each step is intentionally run in a <em>fresh</em> Cursor chat.
+      Think it through acts like an architect, Build it like an implementer, and
+      Check it like a reviewer. Each agent inspects the repository as it exists
+      at that point — not a prior conversation. Wait for full <code>pytest</code>
+      green before starting the next stage's architect chat.
+    </div>
+
+    <div class="roles">
+      <div class="role">
+        <strong>ARCHITECT</strong>
+        Fresh chat. Understand the current repo and propose the change — don't modify files yet.
+      </div>
+      <div class="role">
+        <strong>IMPLEMENTER</strong>
+        Fresh chat. Understand the current repo and implement the requested behavior.
+      </div>
+      <div class="role">
+        <strong>REVIEWER</strong>
+        Fresh chat. Assume someone else wrote it. Inspect critically, strengthen tests, verify the suite.
+      </div>
     </div>
 
     <div class="toolbar">
@@ -256,8 +296,9 @@ def build() -> Path:
     <div id="board"></div>
 
     <footer>
-      After every stage: full <code>pytest</code> green before advancing.
-      Build prompts stay short on purpose — conversational context is the lesson.
+      Teaching point: a well-structured repo, filesystem contracts, and automated tests
+      let independent agents collaborate without shared chat history.
+      Full <code>pytest</code> green before the next stage.
       Local Streamlit board: <code>make prompts</code> → :8502.
     </footer>
   </main>
@@ -297,9 +338,9 @@ def build() -> Path:
 
     function tabsFor(stage) {{
       const phases = [
-        ["plan", "Think it through", "Same agent chat — inspect & propose before coding"],
-        ["execute", "Build it", "Short follow-up — agent already has the plan context"],
-        ["test", "Check it", "Pre-PR review — coverage + full pytest"],
+        ["plan", "Think it through", "Fresh architect chat — inspect & propose"],
+        ["execute", "Build it", "Fresh implementer chat — inspect & build"],
+        ["test", "Check it", "Fresh reviewer chat — inspect & verify"],
       ];
       const tabBtns = phases.map(([key, label], i) =>
         `<button class="tab ${{i === 0 ? "active" : ""}}" type="button" data-tab="${{key}}">${{label}}</button>`
@@ -314,7 +355,7 @@ def build() -> Path:
 
     function render(openAll) {{
       const baseInner = promptBlock(
-        "Warm-up — diagram & mental model",
+        "Room warm-up — diagram & mental model",
         data.base.plan
       );
       let html = stageDetails("0′ — " + data.base.title, data.base.teach, baseInner, openAll);
