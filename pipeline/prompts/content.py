@@ -37,6 +37,50 @@ Sketch a Mermaid flowchart (left-to-right is fine) that captures that story, inc
 Write that diagram and the short bullets into plan.md at the repo root so later chats can find it. Don't implement the pipeline yet — plan.md only.
 """
 
+CREATE_SKILL_PROMPT = """\
+Use Cursor's /create-skill workflow to create a user-level skill named `dev-cycle` so I can use it across repositories.
+
+The skill should support three roles: architect, implement, and review.
+
+Each role may run in a completely fresh chat, so the skill must never depend on previous conversational context. The repository should be treated as the shared source of truth.
+
+Architect:
+- inspect the current repository
+- do not modify files
+- understand the requested feature
+- propose the smallest clean design
+- identify relevant files/interfaces
+- explain how it should be tested
+
+Implement:
+- assume the planning conversation is unavailable
+- inspect the repository and reconstruct context yourself
+- implement the requested behavior using existing patterns
+- keep the change scoped
+- add/update relevant tests
+- run relevant tests and the broader suite when practical
+- summarize what changed and test status
+
+Review:
+- assume another agent implemented the feature
+- inspect it like a PR you did not author
+- verify the requested behavior and architecture
+- look for bugs, regressions, coupling, edge cases, and weak tests
+- add useful missing tests
+- fix implementation bugs rather than weakening legitimate tests
+- run the relevant tests and broader suite
+- summarize findings and final test status
+
+Across all roles:
+- inspect before assuming
+- prefer existing project conventions
+- avoid unnecessary abstractions
+- keep changes small and reviewable
+- tests are part of the handoff contract between independent agents
+
+Make the skill available globally/user-level rather than only inside this repository.
+"""
+
 
 STAGES: tuple[StagePrompts, ...] = (
     StagePrompts(

@@ -6,6 +6,7 @@ Usage (from repo root):
 
 from __future__ import annotations
 
+import html
 import json
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from pipeline.prompts.content import (
     BASE_PLAN,
     BASE_PLAN_TEACH,
     BASE_PLAN_TITLE,
+    CREATE_SKILL_PROMPT,
     STAGES,
 )
 
@@ -41,6 +43,8 @@ def build() -> Path:
     }
     # Prevent accidental </script> breakout inside the JSON blob
     payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+    skill_prompt_html = html.escape(CREATE_SKILL_PROMPT)
+    skill_prompt_id = "create-skill-prompt"
 
     page = f"""<!DOCTYPE html>
 <html lang="en">
@@ -252,6 +256,69 @@ def build() -> Path:
       color: var(--muted);
       font-size: 0.85rem;
     }}
+    .outro {{
+      margin-top: 2rem;
+      padding: 1.5rem 1.35rem 1.35rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: linear-gradient(160deg, #132820 0%, #0f1a17 55%, #161b19 100%);
+    }}
+    .outro h2 {{
+      margin: 0 0 0.75rem;
+      font-size: 1.45rem;
+      letter-spacing: -0.02em;
+    }}
+    .outro-flow {{
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.85rem;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      margin: 0 0 1rem;
+    }}
+    .outro p {{
+      color: var(--muted);
+      margin: 0 0 0.85rem;
+      font-size: 0.95rem;
+    }}
+    .outro .examples {{
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      margin: 0 0 1rem;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.85rem;
+      line-height: 1.7;
+      color: var(--text);
+      white-space: pre-wrap;
+    }}
+    .outro .callout {{
+      border-left: 4px solid var(--accent);
+      background: rgba(61, 143, 118, 0.12);
+      padding: 0.7rem 0.9rem;
+      border-radius: 0 8px 8px 0;
+      margin: 0 0 1.25rem;
+      color: var(--text);
+      font-size: 0.92rem;
+    }}
+    .outro h3 {{
+      margin: 0 0 0.65rem;
+      font-size: 1.05rem;
+    }}
+    .outro .takeaway {{
+      margin: 1rem 0 0;
+      font-size: 0.95rem;
+      color: var(--text);
+      font-style: italic;
+    }}
+    .outro .portable {{
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }}
+    .outro .portable a {{
+      color: #9fdbc5;
+    }}
   </style>
 </head>
 <body>
@@ -298,6 +365,42 @@ def build() -> Path:
     </div>
 
     <div id="board"></div>
+
+    <section class="outro" aria-label="Take the workflow with you">
+      <h2>Take the workflow with you</h2>
+      <p class="outro-flow">ARCHITECT → IMPLEMENTER → REVIEWER</p>
+      <p>
+        The prompts above are intentionally explicit so we can see the workflow during the demo.
+        In a real project, we don't want to rewrite this scaffolding every time.
+      </p>
+      <p>
+        Cursor Skills let us package the workflow once and reuse it across projects.
+      </p>
+      <p>
+        Install the <code>dev-cycle</code> skill, then start three fresh chats for a feature:
+      </p>
+      <div class="examples">/dev-cycle architect Add caching to the API
+
+/dev-cycle implement Add caching to the API
+
+/dev-cycle review Add caching to the API</div>
+      <div class="callout">
+        Each chat starts fresh. The repository, interfaces, and tests provide the shared context between agents.
+      </div>
+      <h3>Create it once</h3>
+      <div class="caption">Paste into Cursor — click Copy</div>
+      <div class="prompt-wrap">
+        <button class="copy-btn" type="button" data-copy="{skill_prompt_id}">Copy</button>
+        <pre id="{skill_prompt_id}">{skill_prompt_html}</pre>
+      </div>
+      <p class="portable">
+        Prefer a plain markdown file for Codex, Claude Code, or any agent?
+        Use <a href="./dev-cycle.md">dev-cycle.md</a> in this docs folder.
+      </p>
+      <p class="takeaway">
+        Prompt engineering gets you through one task. A skill turns the workflow into reusable engineering infrastructure.
+      </p>
+    </section>
 
     <footer>
       Teaching point: plan.md, the repo, filesystem contracts, and automated tests
@@ -387,24 +490,25 @@ def build() -> Path:
           }});
         }});
       }});
-
-      board.querySelectorAll(".copy-btn").forEach((btn) => {{
-        btn.addEventListener("click", async () => {{
-          const pre = document.getElementById(btn.dataset.copy);
-          try {{
-            await navigator.clipboard.writeText(pre.textContent);
-            btn.textContent = "Copied";
-            btn.classList.add("copied");
-            setTimeout(() => {{
-              btn.textContent = "Copy";
-              btn.classList.remove("copied");
-            }}, 1200);
-          }} catch (e) {{
-            btn.textContent = "Select text";
-          }}
-        }});
-      }});
     }}
+
+    document.addEventListener("click", async (e) => {{
+      const btn = e.target.closest(".copy-btn");
+      if (!btn) return;
+      const pre = document.getElementById(btn.dataset.copy);
+      if (!pre) return;
+      try {{
+        await navigator.clipboard.writeText(pre.textContent);
+        btn.textContent = "Copied";
+        btn.classList.add("copied");
+        setTimeout(() => {{
+          btn.textContent = "Copy";
+          btn.classList.remove("copied");
+        }}, 1200);
+      }} catch (err) {{
+        btn.textContent = "Select text";
+      }}
+    }});
 
     const expandAll = document.getElementById("expand-all");
     expandAll.addEventListener("change", () => render(expandAll.checked));

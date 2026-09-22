@@ -8,6 +8,7 @@ from pipeline.prompts.content import (
     BASE_PLAN,
     BASE_PLAN_TEACH,
     BASE_PLAN_TITLE,
+    CREATE_SKILL_PROMPT,
     STAGES,
     StagePrompts,
 )
@@ -218,6 +219,41 @@ def main() -> None:
                 with tab:
                     st.caption(f"{caption} — click the copy icon on the code block")
                     st.code(_prompt_text(stage, key), language="markdown")
+
+    st.divider()
+    st.markdown("## Take the workflow with you")
+    st.caption("ARCHITECT → IMPLEMENTER → REVIEWER")
+    st.markdown(
+        """
+The prompts above are intentionally explicit so we can see the workflow during the demo.
+In a real project, we don't want to rewrite this scaffolding every time.
+
+Cursor Skills let us package the workflow once and reuse it across projects.
+
+Install the `dev-cycle` skill, then start three fresh chats for a feature:
+"""
+    )
+    st.code(
+        "/dev-cycle architect Add caching to the API\n\n"
+        "/dev-cycle implement Add caching to the API\n\n"
+        "/dev-cycle review Add caching to the API",
+        language="text",
+    )
+    st.info(
+        "Each chat starts fresh. The repository, interfaces, and tests provide "
+        "the shared context between agents."
+    )
+    st.markdown("### Create it once")
+    st.caption("Paste into Cursor — click the copy icon")
+    st.code(CREATE_SKILL_PROMPT, language="markdown")
+    st.markdown(
+        "Prefer a plain markdown file for Codex, Claude Code, or any agent? "
+        "See [`docs/dev-cycle.md`](../docs/dev-cycle.md)."
+    )
+    st.markdown(
+        "*Prompt engineering gets you through one task. "
+        "A skill turns the workflow into reusable engineering infrastructure.*"
+    )
 
     st.divider()
     st.caption(
