@@ -1,4 +1,4 @@
-"""DashBite Agent Prompt Board — copy Plan → Execute → Test prompts per stage."""
+"""DashBite Agent Prompt Board — Think it through → Build it → Check it."""
 
 from __future__ import annotations
 
@@ -13,9 +13,9 @@ from pipeline.prompts.content import (
 )
 
 PHASES = (
-    ("plan", "Plan", "Plan only — no code yet"),
-    ("execute", "Execute", "Implement this stage only"),
-    ("test", "Test", "Add tests + full pytest gate"),
+    ("plan", "Think it through", "Same agent chat — inspect & propose before coding"),
+    ("execute", "Build it", "Short follow-up — agent already has the plan context"),
+    ("test", "Check it", "Pre-PR review — coverage + full pytest"),
 )
 
 
@@ -73,7 +73,6 @@ def _inject_style() -> None:
             font-size: 0.8rem;
             letter-spacing: 0.04em;
           }
-          /* Tint only — inherit Streamlit text/surface so light + dark both work */
           .dpb-how {
             background: rgba(61, 143, 118, 0.14);
             border-left: 4px solid #3d8f76;
@@ -89,7 +88,6 @@ def _inject_style() -> None:
             margin-bottom: 0.75rem;
             font-size: 0.95rem;
           }
-          /* Never force a light fill — that breaks Streamlit dark mode */
           div[data-testid="stExpander"] details {
             border: 1px solid rgba(61, 143, 118, 0.35) !important;
             border-radius: 10px !important;
@@ -124,13 +122,13 @@ def main() -> None:
         """
         <div class="dpb-hero">
           <h1>DashBite</h1>
-          <p>Agent Prompt Board — copy Plan → Execute → Test for each pipeline stage.
-          Build the late-delivery ML pipeline with the room, one stage at a time.</p>
+          <p>Agent Prompt Board — paste one message at a time into the same Cursor chat.
+          Think it through → Build it → Check it, stage by stage, with the room.</p>
           <div class="dpb-loop">
-            <span class="dpb-chip">1 · PLAN</span>
-            <span class="dpb-chip">2 · EXECUTE</span>
-            <span class="dpb-chip">3 · TEST</span>
-            <span class="dpb-chip">pytest gate</span>
+            <span class="dpb-chip">THINK IT THROUGH</span>
+            <span class="dpb-chip">BUILD IT</span>
+            <span class="dpb-chip">CHECK IT</span>
+            <span class="dpb-chip">same agent chat</span>
           </div>
         </div>
         """,
@@ -141,9 +139,11 @@ def main() -> None:
         """
         <div class="dpb-how">
           <strong>How to use in the demo:</strong>
-          Walk the room through the story: <em>Base plan</em> (diagram) → then each stage
-          <em>Plan</em> → <em>Execute</em> → <em>Test</em>. Wait for full <code>pytest</code> green
-          before the next beat. Copy prompts into Cursor; attendees build along with you.
+          Keep one Cursor agent conversation open. For each beat, paste
+          <em>Think it through</em> → review the proposal with the room → paste
+          <em>Build it</em> (short on purpose — the agent already has context) → paste
+          <em>Check it</em> → wait for full <code>pytest</code> green → next stage.
+          Attendees copy the same prompts and build along.
         </div>
         """,
         unsafe_allow_html=True,
@@ -156,7 +156,7 @@ def main() -> None:
             f'<p class="dpb-stage-meta"><strong>Teach:</strong> {BASE_PLAN_TEACH}</p>',
             unsafe_allow_html=True,
         )
-        st.caption("Plan only — high-level diagram; click the copy icon on the code block")
+        st.caption("Warm-up only — diagram & mental model; click the copy icon")
         st.code(BASE_PLAN, language="markdown")
 
     for stage in STAGES:
@@ -175,8 +175,9 @@ def main() -> None:
 
     st.divider()
     st.caption(
-        "After every stage: run full `pytest` (unit + regression + integration). "
-        "Do not advance until green. Pipeline dashboard stays on :8501; this board on :8502."
+        "After every stage: full `pytest` green before advancing. "
+        "Build prompts stay short on purpose — conversational context is the lesson. "
+        "Local board: make prompts → :8502."
     )
 
 

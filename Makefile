@@ -36,7 +36,7 @@ help:
 	@echo "  make train                Run training loop (foreground)"
 	@echo "  make infer                Run inference loop (foreground)"
 	@echo "  make dashboard            Run Streamlit on :8501 (foreground)"
-	@echo "  make prompts              Agent Prompt Board on :8502 (Plan→Execute→Test)"
+	@echo "  make prompts              Agent Prompt Board on :8502 (Think→Build→Check)"
 	@echo "  make prompts-static       Rebuild docs/index.html for GitHub Pages"
 	@echo "  make run                  Start all stages in background + dashboard"
 	@echo "  make stop                 Stop background pipeline processes"

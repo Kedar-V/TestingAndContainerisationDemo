@@ -1,4 +1,4 @@
-"""Stage metadata and Plan → Execute → Test agent prompts for the live demo."""
+"""Stage metadata and Think it through → Build it → Check it prompts for the live demo."""
 
 from __future__ import annotations
 
@@ -10,34 +10,31 @@ class StagePrompts:
     number: int
     title: str
     teach: str
-    plan: str
-    execute: str
-    test: str
+    plan: str  # Think it through
+    execute: str  # Build it
+    test: str  # Check it
 
 
 BASE_PLAN_TITLE = "Base plan — Pipeline diagram"
 BASE_PLAN_TEACH = (
-    "Warm up: sketch the whole DashBite story on one diagram before anyone writes code."
+    "Warm up together: get the same mental model on one diagram before anyone touches code."
 )
 BASE_PLAN = """\
-We're kicking off a live build of DashBite — a small food-delivery app that predicts whether an order will be late.
+We're about to build a small ML pipeline together. Before we touch code, help me sketch the system so everyone in the room has the same mental model.
 
-Before we write any code, help us think through the shape of the system out loud.
+The product story is DashBite: food-delivery orders come in, and we want to predict whether an order will be late. Keep the raw fields short — order_id, timestamp, distance_km, prep_minutes, order_value, was_late.
 
-Here's the story we want to tell:
-Orders flow in, get cleaned into features, a tiny model trains when there's enough labeled data, a separate process scores new orders with the newest checkpoint, and two lightweight dashboards watch the pipeline. Stages talk through folders under data/ — not through importing each other. Train only writes checkpoints; infer only reads the newest one. No containers, no Kafka, nothing fancy — modular Python and CSVs are enough.
+Architecturally I want something modular and demo-friendly:
+- separate stages that feel like separate processes
+- they hand off through folders under data/, not by importing each other
+- training publishes versioned checkpoints; inference is a separate consumer of the newest checkpoint on disk
+- if training is down, inference should still work off whatever model is already there
+- a couple of lightweight dashboards that read existing outputs rather than owning pipeline logic
+- no containers, Kafka, Spark, etc. — plain Python and files are enough
 
-Please sketch a Mermaid flowchart (left-to-right is fine) that shows roughly:
+Sketch a Mermaid flowchart (left-to-right is fine) that captures that story, including the train write path and the infer read path. Then give me a few short bullets on the teaching beats we should keep repeating as we build.
 
-Simulator → data/raw → Preprocess → data/features
-features → Train → data/models (write checkpoint only)
-features → Infer, and models → Infer (read newest checkpoint)
-Infer → data/predictions
-features and predictions → Dashboards
-
-In a few short bullets, call out the teaching beats: separate processes, train/infer isolation, and that after each stage we run the full pytest suite before moving on.
-
-Don't create files or implement anything yet — just the diagram and the story we can agree on as a room.
+Don't create files yet — just the diagram and the shared picture for the room.
 """
 
 
@@ -45,193 +42,179 @@ STAGES: tuple[StagePrompts, ...] = (
     StagePrompts(
         number=0,
         title="Skeleton",
-        teach="Lay down the project bones: folders, shared config, and a pytest gate.",
+        teach="Smallest foundation: shared config, data folders, and a pytest gate.",
         plan="""\
-Great — we have the big picture. Now Stage 0: the skeleton.
+We have the big picture. Let's put down the smallest foundation we need before building anything interesting.
 
-We're standing up a brand-new DashBite project. Plan (don't code yet) the smallest foundation we need so later stages have somewhere to live:
+I want a tiny project skeleton we can grow into: a pipeline package with shared config and path helpers, the usual data/ folders for handoffs, and a pytest setup with unit / regression / integration so every later stage has a gate.
 
-- a pipeline package with shared config (TRAIN_EVERY_N_EVENTS default 2000, BATCH_SIZE default 50, readable from env) and path helpers for data/raw, features, models, predictions, quality
-- those data folders ready to go
-- a simple test layout: unit / regression / integration / fixtures, with pytest markers wired
+Shared config should cover things like how often we retrain and batch size, preferably overridable from the environment. Beyond that, use your judgment for what's essential vs. premature.
 
-Keep it to the essentials. Skip the simulator, model, and dashboards for now. Tell us which files you'd create and what each one is responsible for.
+Take a look at what we already have (likely almost nothing) and propose the smallest clean foundation. Before changing anything, walk me through what you'd add and how you'd smoke-test it.
 """,
         execute="""\
-Let's build Stage 0 from that plan.
+Yep, that sounds good. Go ahead and build it.
 
-Create the skeleton: pipeline/config.py and pipeline/paths.py, the data/ folders, tests/ with unit·regression·integration·fixtures, and pytest.ini markers. A thin requirements.txt and a tiny README are fine if we need them to run.
-
-Stay on Stage 0 only — no simulator or ML yet. When you're done, we should be able to import load_config and create the data dirs cleanly.
+Keep the change scoped to this foundation stage — no simulator or model yet. Reuse whatever tiny bits already exist, and run a quick import / pytest sanity check as you work.
 """,
         test="""\
-Time to lock Stage 0 in with tests.
+Before we move on, review what you just built like you would before opening a PR.
 
-Add a few small ones: config defaults / env overrides, path helpers, and ensure_data_dirs in a temp folder. One clear story per test is enough.
+Make sure we have useful unit, regression, and integration coverage for the skeleton — config, paths, data dirs. Run the full suite too. If something's awkward, fix the design rather than weakening the tests.
 
-Then run the full pytest suite and stop once it's green — we don't start Stage 1 until then.
+Then give me a short summary of what you verified.
 """,
     ),
     StagePrompts(
         number=1,
         title="Simulator",
-        teach="Make the demo feel live: synthetic orders arrive in data/raw/.",
+        teach="Make the system feel alive: synthetic orders land under data/raw/.",
         plan="""\
-Stage 0 is green. Next story beat: orders start showing up.
+The foundation is in place. Now I want the system to actually feel alive.
 
-Plan Stage 1 — the simulator. Every couple of seconds it should drop a CSV of synthetic DashBite orders into data/raw/ (order_id, timestamp, distance_km, prep_minutes, order_value, was_late). Logs should feel live (“new orders arrived”), not talk about batches. Reuse our shared config for batch size and poll interval; it's okay if some rows are messy so preprocess has something to clean later.
+Next up is a small intake process that periodically writes synthetic DashBite orders into data/raw/. Enough columns for the rest of the pipeline — ids, timestamp, distance, prep time, order value, late label. Logs should feel like “new orders arrived,” not like we're dumping batch files. It's fine if some rows are messy; preprocess can clean them later.
 
-We'll run it as `python -m pipeline.simulator`. Don't plan preprocess, train, or dashboards yet — just intake.
+Look at the repo first and propose the smallest simulator that fits what we already have. We're not doing preprocess or training yet.
+
+Before changing anything, walk me through what you'd do and how you'd test it.
 """,
         execute="""\
-Implement the simulator we just planned.
+That matches what I had in mind. Build it.
 
-A poll loop that writes CSVs under data/raw/, with a seeded generator so tests can be deterministic, and a log line when new orders arrive. Optional corruption rate is fine. Don't touch features, models, or predictions.
-
-When it runs, data/raw/ should start filling up.
+Stay on intake only — write under data/raw/, reuse shared config/paths, and run the relevant tests as you go.
 """,
         test="""\
-Prove the intake works, then keep the whole suite green.
+Before we move on, review the simulator like a pre-PR check.
 
-Unit: a batch has the right columns and sensible ranges.
-Regression: seeded output matches a small golden CSV in fixtures.
-Integration: one tick writes under data/raw/ (temp dirs are fine).
+I want useful unit, regression, and integration coverage for this stage — columns/ranges, a seeded golden fixture, and proof that a tick lands a file under data/raw/. Run the full suite so we didn't break Stage 0. Fix real issues instead of softening asserts.
 
-Run full pytest — Stages 0 and 1 must both pass before we move on.
+Then summarize what you verified.
 """,
     ),
     StagePrompts(
         number=2,
         title="Preprocess",
-        teach="Clean the raw feed and shape a simple feature table.",
+        teach="Turn raw orders into a simple feature table under data/features/.",
         plan="""\
-Orders are landing. Stage 2 is where we turn raw CSVs into something a model can eat.
+Raw orders are coming in now. Next I want to turn them into something the model can actually use.
 
-Plan preprocess: watch data/raw/, drop invalid rows, add just one or two features — hour from timestamp and/or is_peak for lunch/dinner — and write to data/features/ (keep was_late for training). A small quality log under data/quality/ is welcome if it helps the dashboards later.
+Take a look at what we already have and propose the smallest sensible preprocessing stage. We need to clean obviously bad rows, derive a couple of useful features, and write the result under data/features/ — including the late label so training can use it later. A lightweight quality log is nice if it helps dashboards, but don't overbuild.
 
-Runnable as `python -m pipeline.preprocess`. Still no training or inference.
+Keep it simple for the demo. We're not doing training yet. Stages should keep talking through files under data/.
+
+Before changing anything, tell me what you'd add or modify and how you'd test it.
 """,
         execute="""\
-Build preprocess from that plan.
+Yep, that sounds good. Go ahead and build it.
 
-Poll new raw files, clean them, add hour / is_peak, write feature CSVs. Leave training and predictions alone, and don't change how the simulator behaves from the outside.
-
-When raw files appear, features should follow.
+Keep the change scoped to preprocess, reuse the path/config pieces we already have, and run the relevant tests as you work.
 """,
         test="""\
-Gate Stage 2.
+Before we move on, review preprocess like you would before a PR.
 
-Unit: drop-invalid + hour / is_peak.
-Regression: fixed raw fixture → golden features CSV.
-Integration: raw → features, and older tests still pass.
+Cover the cleaning + feature behavior with unit/regression/integration tests, and run the full suite so Stages 0–1 still pass. If something fails, fix the underlying issue rather than watering down the tests.
 
-Full pytest green for Stages 0–2 before Stage 3.
+Short summary of what you verified, please.
 """,
     ),
     StagePrompts(
         number=3,
         title="Train",
-        teach="Retrain when enough labels arrive — write checkpoints, nothing else.",
+        teach="Model write path: retrain on enough labels, publish checkpoints only.",
         plan="""\
-We have features. Stage 3 is the write path for the model.
+We have labeled feature rows now. Let's add the model's write path.
 
-Plan training: count new labeled rows since the last train; when we hit TRAIN_EVERY_N_EVENTS, fit a tiny LogisticRegression on distance_km + prep_minutes and write a timestamped checkpoint (and a little metrics JSON) under data/models/. Training owns that folder — it never imports or calls inference, never blocks on scoring.
+I want the simplest training process that makes sense for this demo. It should retrain after enough new labeled examples and publish a versioned model artifact under data/models/ that another process can consume independently. Train should only write — it shouldn't import or call inference, and it shouldn't need scoring to be running.
 
-Runnable as `python -m pipeline.train`. Infer and dashboards wait for later.
+Keep the model intentionally boring; the architecture is what we care about. Look at the repo and propose the smallest clean approach.
+
+Before changing anything, walk me through what you'd do.
 """,
         execute="""\
-Implement training as planned.
+Love it — especially keeping train as a pure publisher. Build it.
 
-Poll features, retrain when enough new labels arrive, write checkpoint_*.joblib + metrics, and remember train state so we don't retrain every tick. Do not import infer or write predictions.
-
-We're done for this stage when a checkpoint shows up after enough labeled rows.
+Scoped to the training stage only. Reuse existing config/feature conventions, and run tests as you go.
 """,
         test="""\
-Lock the train path.
+Pre-PR pass on training, please.
 
-Unit: retrain only when count ≥ N; checkpoint gets written.
-Regression: fixed features → stable metrics shape with a seed.
-Integration: features → checkpoint, and train does not import infer.
+Useful unit/regression/integration coverage for the retrain trigger and checkpoint publish path, plus a check that train stays decoupled from infer. Run the full suite. Fix real breakage; don't weaken tests to get green.
 
-Full pytest for Stages 0–3 must be green.
+Then a short summary of what you verified.
 """,
     ),
     StagePrompts(
         number=4,
         title="Infer",
-        teach="Score with the newest checkpoint — no dependency on train being alive.",
+        teach="Model read path: separate consumer of the newest checkpoint on disk.",
         plan="""\
-Checkpoint exists. Stage 4 is the read path — and this is the isolation beat of the lesson.
+We have training producing checkpoints now. I want inference to be a completely separate consumer of those checkpoints.
 
-Plan inference: on each poll, pick the newest checkpoint in data/models/, score new feature rows, write order_id, late_probability, predicted_late, checkpoint_id to data/predictions/. If there's no checkpoint yet, log once and wait — don't crash, don't kick off training, don't import train.
+Think through how you'd add that without coupling inference to the training process. If training is down, inference should still be able to use the latest model on disk. If no model exists yet, it should just wait cleanly. Score new feature rows and write predictions under data/predictions/ with enough columns that dashboards can use later.
 
-Runnable as `python -m pipeline.infer`.
+Look at the repo first and walk me through the change you'd make. Don't implement it yet.
 """,
         execute="""\
-Build infer from that plan.
+That separation is exactly what I want. Build it.
 
-Newest-checkpoint selection, score unscored rows, write predictions CSVs, skip cleanly when no model is there yet. Never import train or write checkpoints.
-
-Predictions should grow whenever we have both a checkpoint and new features.
+Keep infer as a read-only consumer of checkpoints. Run the relevant tests while you work.
 """,
         test="""\
-Prove infer — and that it stays independent of train.
+Before we move on, review inference like a careful pre-PR.
 
-Unit: newest checkpoint; clean skip when missing.
-Regression: fixed features + checkpoint → golden predictions (tolerance OK).
-Integration: writes under data/predictions/; infer does not import train; older stages still green.
+I care a lot about isolation here: newest-checkpoint selection, clean wait when nothing's on disk yet, predictions landing in the right place, and hard proof that infer doesn't import or depend on train being alive. Full suite green for everything so far. Fix underlying issues if something fails.
 
-Full pytest for Stages 0–4.
+Then tell me briefly what you verified.
 """,
     ),
     StagePrompts(
         number=5,
         title="ML Dashboard",
-        teach="Model Pulse: a sparse view of volume and scores.",
+        teach="Model Pulse: a lightweight view for someone watching the ML system.",
         plan="""\
-Pipeline is scoring. Stage 5 is for the ML audience — Model Pulse.
+Predictions are flowing. I'd like a lightweight view for someone watching the ML system.
 
-Plan a thin Streamlit page plus pure helpers we can unit-test: sample volume from features, a simple score summary from predictions. One or two charts is enough. Read from data/features/ and data/predictions/ only.
+Propose the smallest Model Pulse-style dashboard that reads the outputs we already have under data/features/ and data/predictions/. Prefer pure helpers we can unit-test, with a sparse Streamlit page on top — volume and score shape are enough. Dashboards should consume existing outputs, not own pipeline logic.
 
-Leave the business / Ops Control page for Stage 6.
+We're not building the business/ops view yet.
+
+Take a look at the repo and walk me through what you'd add before changing anything.
 """,
         execute="""\
-Implement Model Pulse.
+That keeps it suitably thin. Go ahead and build it.
 
-Helpers like sample_volume and score_summary, and a sparse Streamlit page that shows them. Keep business KPIs (late rate, at-risk value) out of this stage.
-
-When features and predictions exist, the page should light up.
+ML monitoring only — leave ops KPIs for the next stage. Run relevant tests as you work.
 """,
         test="""\
-Test the helpers, not the browser.
+Pre-PR review on the ML dashboard helpers/page wiring.
 
-Unit + regression on volume / score numbers from fixtures; a small integration read from a temp data tree shaped like earlier stages.
+Useful unit/regression/integration coverage on the metric helpers (browser UI itself doesn't need automation). Full suite still green. Fix real issues rather than softening asserts.
 
-Full pytest for Stages 0–5 before we add Ops Control.
+Short summary of what you checked.
 """,
     ),
     StagePrompts(
         number=6,
         title="Business Dashboard",
-        teach="Ops Control: late rate and orders at risk — same data, different audience.",
+        teach="Ops Control: same pipeline, different audience — late rate and at-risk value.",
         plan="""\
-Same pipeline, different audience. Stage 6 is Ops Control.
+Same underlying pipeline, different audience. Let's add a simple operational view.
 
-Plan helpers for late rate and at-risk order value (orders predicted late), plus a second Streamlit view beside Model Pulse. Reuse how we load features / predictions. Still keep KPIs to those two ideas — don't redesign Model Pulse.
+I want an Ops Control-style page beside Model Pulse: late rate and something like orders-at-risk value, derived from the features/predictions we already produce. Keep Model Pulse intact. Still: dashboards read data/, they don't become the pipeline.
+
+Look at what Stage 5 left us and propose the smallest clean addition. Before changing anything, walk me through it.
 """,
         execute="""\
-Add the business dashboard.
+Yep — build the ops view.
 
-biz_metrics helpers and an Ops Control page for late rate and at-risk value. Don't break Model Pulse.
-
-When you're done, ops can read the same folders the ML page does.
+Stay scoped to business KPIs alongside Model Pulse. Reuse loading patterns we already have, and run tests as you go.
 """,
         test="""\
-Final gate for the demo pipeline.
+Final pre-PR pass for the demo pipeline.
 
-Unit + regression on late rate and at-risk helpers; integration across the features/predictions handoff; full suite Stages 0–6 green.
+Useful coverage for the ops helpers and handoff, full suite green across everything we've built. If something's off, fix the cause. Optionally leave a short README note on running stages in separate terminals and gating on pytest.
 
-Optionally leave a short README note on how to run each stage in its own terminal and re-run pytest after every stage. Then we're done — celebrate the green suite.
+Then give me a brief wrap-up of what you verified — that's our cue the room can celebrate green.
 """,
     ),
 )

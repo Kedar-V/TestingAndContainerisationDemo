@@ -41,7 +41,7 @@ make clean-data    # wipe runtime CSVs/checkpoints under data/
 
 Foreground single stages: `make simulator`, `make preprocess`, `make train`, `make infer`, `make dashboard`.
 
-Agent demo prompts (Plan → Execute → Test per stage): `make prompts` → http://localhost:8502
+Agent demo prompts (Think it through → Build it → Check it): `make prompts` → http://localhost:8502
 
 GitHub Pages (static copy of the board): https://kedar-v.github.io/TestingAndContainerisationDemo/  
 Rebuild after editing prompts: `make prompts-static`
