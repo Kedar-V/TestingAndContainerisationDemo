@@ -119,12 +119,8 @@ After implementing stage *N*:
 - Regression: fixture preds/features → expected chart/KPI numbers
 - Integration: helpers read real-shaped files from a temp data tree produced like prior stages
 
-**Stage 6 — Business dashboard**
-- Unit: late rate + at-risk value helpers
-- Regression: fixture → expected KPI numbers
-- Integration: reads features/predictions handoff; full suite including stages 0–5 still green
 
-**Stage 7 — Runbook**
+**Stage 6 — Runbook**
 - Document the gate in the README (`pytest` after every stage)
 - Ensure one command runs unit + regression + integration together
 
@@ -208,28 +204,15 @@ Deliverable: predictions grow when a checkpoint exists; stage 0–4 suite green.
 
 **Features (charts/widgets):**
 1. **Time-series volume** — orders over a recent window (active title; human-readable time axis)
-2. **Score bands** — `late_probability` histogram with labels like `0.0–0.1` (not Interval objects); cue the 0.5 decision region
+2. **Late-flag rate over time** — `% predicted_late` by minute (step/line); claim about flagging more/fewer
 3. **Ranked field failures** — one horizontal bar chart; no duplicate table
-4. **Few KPIs** (~3): samples, drop rate, mean score — not a metrics wall
+4. **Few KPIs** (~3): samples, drop rate, late flag rate — not a metrics wall
 
 Deliverable: sparse Streamlit Model Pulse page; stage 0–5 suite green (test helpers, not the browser UI).
 
 ---
 
-## Stage 6 — Business dashboard
-
-**Teach:** same pipeline, different audience — dollars at risk.
-
-**Features:**
-1. **At-risk order value** as the lead claim (active title)
-2. **Late rate** beside it
-3. Recent predictions table as **drill-down only** (not the main visual)
-
-Deliverable: Ops Control page beside Model Pulse; stage 0–6 suite green.
-
----
-
-## Stage 7 — Runbook
+## Stage 6 — Runbook
 
 **Teach:** how to run the modular pipeline locally as separate processes, and how testing gates progress.
 
@@ -251,7 +234,6 @@ For each stage below: implement → add its unit/regression/integration tests �
 4. Stage 3 — train
 5. Stage 4 — infer
 6. Stage 5 — ML dashboard
-7. Stage 6 — business dashboard
-8. Stage 7 — README / runbook
+7. Stage 6 — README / runbook
 
 **Rule of thumb for every PR/lesson:** if a stage needs a third feature, cut it. Same for tests: keep them few, clear, and mandatory.

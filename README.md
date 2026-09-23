@@ -13,7 +13,7 @@ No containers. Stages are separate Python modules that share folders under `data
 | 2 | `pipeline.preprocess` | Drops bad rows, adds `hour` / `is_peak` → `data/features/` |
 | 3 | `pipeline.train` | Retrains when ≥ `TRAIN_EVERY_N_EVENTS` new labeled rows; writes checkpoints |
 | 4 | `pipeline.infer` | Scores unscored rows with newest checkpoint → `data/predictions/` |
-| 5–6 | `pipeline.dashboard` | Streamlit: **Model Pulse** + **Ops Control** |
+| 5 | `pipeline.dashboard` | Streamlit: **Model Pulse** |
 
 ## Setup
 
@@ -72,44 +72,20 @@ tests/
   fixtures/
 ```
 
-## Run the pipeline (separate terminals)
+## Run the pipeline (background stack)
 
-Use a small retrain threshold for demos:
-
-```bash
-export TRAIN_EVERY_N_EVENTS=50
-export BATCH_SIZE=20
-```
-
-Terminal 1 — intake:
+Classroom default — durable background jobs:
 
 ```bash
-python -m pipeline.simulator
+make run                 # simulator + preprocess + train + infer + Model Pulse
+make status              # confirm each stage is UP
+open http://localhost:8501
+make stop
 ```
 
-Terminal 2 — preprocess:
+Logs: `.logs/*.log` · PIDs: `.logs/pids/` · Poll default: `POLL_INTERVAL_SECONDS=15`
 
-```bash
-python -m pipeline.preprocess
-```
-
-Terminal 3 — train (write path only):
-
-```bash
-python -m pipeline.train
-```
-
-Terminal 4 — infer (read path only; picks newest checkpoint):
-
-```bash
-python -m pipeline.infer
-```
-
-Terminal 5 — dashboards:
-
-```bash
-streamlit run pipeline/dashboard/app.py
-```
+Foreground single stages (one terminal each): `make simulator`, `make preprocess`, `make train`, `make infer`, `make dashboard`.
 
 ## Config (environment)
 

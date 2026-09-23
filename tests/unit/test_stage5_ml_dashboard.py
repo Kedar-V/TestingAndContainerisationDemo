@@ -6,8 +6,8 @@ import pandas as pd
 import pytest
 
 from pipeline.dashboard.ml_metrics import (
+    late_flag_rate_over_time,
     sample_volume,
-    score_histogram,
     score_summary,
     volume_over_time,
 )
@@ -54,11 +54,28 @@ def test_volume_over_time_buckets_by_minute():
 
 
 @pytest.mark.unit
-def test_score_histogram_uses_readable_bands():
-    preds = pd.DataFrame({"late_probability": [0.05, 0.15, 0.55, 0.95]})
-    hist = score_histogram(preds)
-    assert list(hist.columns) == ["score_band", "orders"]
-    assert hist["score_band"].iloc[0] == "0.0–0.1"
-    assert int(hist.loc[hist["score_band"] == "0.0–0.1", "orders"].iloc[0]) == 1
-    assert int(hist["orders"].sum()) == 4
-    assert score_histogram(pd.DataFrame()).empty
+def test_late_flag_rate_over_time_by_minute():
+    features = pd.DataFrame(
+        {
+            "order_id": ["a", "b", "c", "d"],
+            "timestamp": [
+                "2024-06-15T12:00:10+00:00",
+                "2024-06-15T12:00:50+00:00",
+                "2024-06-15T12:01:05+00:00",
+                "2024-06-15T12:01:40+00:00",
+            ],
+        }
+    )
+    preds = pd.DataFrame(
+        {
+            "order_id": ["a", "b", "c", "d"],
+            "predicted_late": [1, 0, 1, 1],
+        }
+    )
+    rates = late_flag_rate_over_time(preds, features, recent_minutes=None)
+    assert list(rates.columns) == ["late_flag_rate"]
+    assert len(rates) == 2
+    assert rates.iloc[0]["late_flag_rate"] == pytest.approx(0.5)  # a=1, b=0
+    assert rates.iloc[1]["late_flag_rate"] == pytest.approx(1.0)  # c=1, d=1
+    assert late_flag_rate_over_time(pd.DataFrame(), features).empty
+    assert late_flag_rate_over_time(preds, pd.DataFrame()).empty

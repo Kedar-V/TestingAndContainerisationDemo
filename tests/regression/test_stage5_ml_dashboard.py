@@ -6,8 +6,8 @@ import pandas as pd
 import pytest
 
 from pipeline.dashboard.ml_metrics import (
+    late_flag_rate_over_time,
     sample_volume,
-    score_histogram,
     score_summary,
     volume_over_time,
 )
@@ -23,9 +23,27 @@ def test_ml_kpis_from_fixtures():
     assert list(volume_ts.columns) == ["orders"]
     assert int(volume_ts["orders"].sum()) == 5
     assert len(volume_ts) == 1  # golden fixture is within one minute
-    hist = score_histogram(preds)
-    assert list(hist["score_band"].head(1)) == ["0.0–0.1"]
-    assert int(hist["orders"].sum()) == 3
+
+    # predictions_sample ids don't overlap golden features — empty join is expected
+    assert late_flag_rate_over_time(preds, features).empty
+
+    # joinable synthetic pair for the late-flag series
+    joined_features = pd.DataFrame(
+        {
+            "order_id": ["ord-a", "ord-b", "ord-c"],
+            "timestamp": [
+                "2024-06-15T12:00:00+00:00",
+                "2024-06-15T12:00:30+00:00",
+                "2024-06-15T12:01:00+00:00",
+            ],
+        }
+    )
+    rates = late_flag_rate_over_time(preds, joined_features, recent_minutes=None)
+    assert list(rates.columns) == ["late_flag_rate"]
+    assert len(rates) == 2
+    assert rates.iloc[0]["late_flag_rate"] == pytest.approx(0.5)  # ord-a, ord-b
+    assert rates.iloc[1]["late_flag_rate"] == pytest.approx(1.0)  # ord-c
+
     summary = score_summary(preds)
     assert summary["count"] == 3
     assert summary["mean_probability"] == pytest.approx(0.5333333333)

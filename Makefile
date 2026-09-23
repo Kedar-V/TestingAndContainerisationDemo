@@ -21,7 +21,7 @@ PIDS    := $(LOG_DIR)/pids
 
 .PHONY: help install test test-unit test-regression test-integration \
 	simulator preprocess train infer dashboard prompts prompts-static \
-	run stop clean clean-data
+	run stop status clean clean-data
 
 help:
 	@echo "DashBite Make targets"
@@ -35,15 +35,17 @@ help:
 	@echo "  make preprocess           Run preprocess loop (foreground)"
 	@echo "  make train                Run training loop (foreground)"
 	@echo "  make infer                Run inference loop (foreground)"
-	@echo "  make dashboard            Run Streamlit on :8501 (foreground)"
+	@echo "  make dashboard            Run Streamlit Model Pulse on :8501 (foreground)"
 	@echo "  make prompts              Agent Prompt Board on :8502 (Architect→Implementer→Reviewer)"
 	@echo "  make prompts-static       Rebuild docs/index.html for GitHub Pages"
 	@echo "  make run                  Start all stages in background + dashboard"
+	@echo "  make status               Show whether background stages are UP"
 	@echo "  make stop                 Stop background pipeline processes"
 	@echo "  make clean-data           Remove runtime files under data/ (keep .gitkeep)"
 	@echo "  make clean                clean-data + logs + pytest cache"
 	@echo ""
-	@echo "Env defaults: TRAIN_EVERY_N_EVENTS=$(TRAIN_EVERY_N_EVENTS) BATCH_SIZE=$(BATCH_SIZE)"
+	@echo "Env defaults: TRAIN_EVERY_N_EVENTS=$(TRAIN_EVERY_N_EVENTS) BATCH_SIZE=$(BATCH_SIZE) POLL_INTERVAL_SECONDS=$(POLL_INTERVAL_SECONDS)"
+	@echo "Foreground = one stage in this terminal. Background stack = make run / make stop."
 
 install: $(VENV)/.installed
 
@@ -89,38 +91,16 @@ prompts-static: install
 	PYTHONPATH=$(CURDIR) $(PY) -m pipeline.prompts.build_static
 
 run: install stop
-	@mkdir -p $(LOG_DIR) $(PIDS)
 	@echo "Starting pipeline (logs in $(LOG_DIR)/, poll=$(POLL_INTERVAL_SECONDS)s)..."
-	@PYTHONUNBUFFERED=1 nohup $(PY) -m pipeline.simulator \
-		>$(LOG_DIR)/simulator.log 2>&1 </dev/null & echo $$! > $(PIDS)/simulator.pid
-	@PYTHONUNBUFFERED=1 nohup $(PY) -m pipeline.preprocess \
-		>$(LOG_DIR)/preprocess.log 2>&1 </dev/null & echo $$! > $(PIDS)/preprocess.pid
-	@PYTHONUNBUFFERED=1 nohup $(PY) -m pipeline.train \
-		>$(LOG_DIR)/train.log 2>&1 </dev/null & echo $$! > $(PIDS)/train.pid
-	@PYTHONUNBUFFERED=1 nohup $(PY) -m pipeline.infer \
-		>$(LOG_DIR)/infer.log 2>&1 </dev/null & echo $$! > $(PIDS)/infer.pid
-	@PYTHONUNBUFFERED=1 nohup env PYTHONPATH=$(CURDIR) $(STREAMLIT) run pipeline/dashboard/app.py \
-		--server.headless true --server.port 8501 \
-		>$(LOG_DIR)/dashboard.log 2>&1 </dev/null & echo $$! > $(PIDS)/dashboard.pid
-	@sleep 1
-	@echo "Dashboard: http://localhost:8501"
-	@echo "Stop with: make stop"
+	@LOG_DIR=$(LOG_DIR) PIDS=$(PIDS) PY=$(PY) STREAMLIT=$(STREAMLIT) \
+		bash scripts/pipeline_bg.sh start
+
+status:
+	@LOG_DIR=$(LOG_DIR) PIDS=$(PIDS) bash scripts/pipeline_bg.sh status
 
 stop:
-	@if [ -d "$(PIDS)" ]; then \
-		for f in $(PIDS)/*.pid; do \
-			[ -f "$$f" ] || continue; \
-			pid=$$(cat "$$f"); \
-			kill $$pid 2>/dev/null || true; \
-			rm -f "$$f"; \
-		done; \
-	fi
-	@pkill -f "python -m pipeline.simulator" 2>/dev/null || true
-	@pkill -f "python -m pipeline.preprocess" 2>/dev/null || true
-	@pkill -f "python -m pipeline.train" 2>/dev/null || true
-	@pkill -f "python -m pipeline.infer" 2>/dev/null || true
-	@pkill -f "streamlit run pipeline/dashboard/app.py" 2>/dev/null || true
-	@echo "Pipeline stopped."
+	@LOG_DIR=$(LOG_DIR) PIDS=$(PIDS) PY=$(PY) STREAMLIT=$(STREAMLIT) \
+		bash scripts/pipeline_bg.sh stop
 
 clean-data:
 	@rm -f data/raw/*.csv \

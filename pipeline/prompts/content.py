@@ -29,9 +29,9 @@ Architecturally I want something modular and demo-friendly:
 - they hand off through folders under data/, not by importing each other
 - training publishes versioned checkpoints; inference is a separate consumer of the newest checkpoint on disk
 - if training is down, inference should still work off whatever model is already there
-- a couple of lightweight dashboards that read existing outputs rather than owning pipeline logic
+- a lightweight Model Pulse dashboard that reads existing outputs rather than owning pipeline logic
 - dashboards follow claim-first viz: active titles, human-readable labels, one story per chart — not a metrics dump
-- the ML dashboard must include a time-series of sample volume over time (not just a single volume number)
+- Model Pulse must include a time-series of sample volume over time (not just a single volume number)
 - no containers, Kafka, Spark, etc. — plain Python and files are enough
 
 Orchestration non-negotiable for this project:
@@ -144,10 +144,10 @@ The Manual Smoke Test is for a live classroom demo — visible logs, files on di
 _DASHBOARD_VIZ = """\
 Visualization quality bar (non-negotiable for dashboard UI):
 - story first: each chart/section has one claim; titles state a finding (active voice), not variable names
-- reduce decoding: human-readable axis labels (e.g. score bands `0.0–0.1`, not Interval/`{{"left":…}}` junk); prefer horizontal text
+- reduce decoding: human-readable axis labels (e.g. `% flagged late`, plain field names); prefer horizontal text
 - do not make the audience do math: encode the decision quantity directly (drop rate, at-risk $, ranked failures)
 - data-ink: few KPIs (about 2–3); no duplicate chart+table for the same fact; no competing multi-series that retell a KPI
-- Model Pulse ≠ Ops Control: ML health vs business risk — don't mix audiences on one page
+- one Model Pulse page for ML health — keep business/ops KPIs out of this view
 """
 
 
@@ -416,7 +416,7 @@ Finish with a short summary of what you checked, anything you changed, and wheth
     StagePrompts(
         number=5,
         title="ML Dashboard",
-        teach="Model Pulse: claim-first charts — volume over time, readable score bands, ranked field failures.",
+        teach="Model Pulse: claim-first charts — volume over time, late-flag rate over time, ranked field failures.",
         plan=f"""\
 Features and predictions should already be flowing under data/features/ and data/predictions/. I'd like a lightweight Model Pulse view for someone watching whether the late-prediction system is healthy.
 
@@ -430,18 +430,18 @@ Include:
 - a manual smoke test I can run live from the terminal after implementation
 
 Non-negotiables:
-- pure helpers: sample volume, volume-over-time (timestamp buckets), score summary, and a score histogram with human-readable bin labels (e.g. `0.0–0.1`)
+- pure helpers: sample volume, volume-over-time (timestamp buckets), score summary, and late-flag rate over time (join predictions to feature timestamps via order_id; % predicted_late per minute)
 - Model Pulse UI (sparse Streamlit; reads data/ only):
-  - ~3 KPIs max (e.g. samples, drop rate, mean late score) — not a wall of metrics
+  - ~3 KPIs max (e.g. samples, drop rate, late flag rate) — not a wall of metrics
   - hero chart: orders over time (recent window, e.g. last 60 minutes) with an active title stating the finding
-  - score chart: readable probability bands + a clear nod to the 0.5 decision region — never raw Interval objects on the axis
+  - model-output chart: step/line of % predicted_late by minute (recent window) with an active title like “flagging more/fewer late” — not a raw score histogram
   - field failures: one horizontal bar chart sorted by count; no duplicate dataframe under it
   - drop redundant throughput multi-series if it only retells drop rate
-- no business/ops KPIs (late rate, $ at risk) in this stage
+- no business/ops KPIs in this dashboard (Model Pulse only)
 
 {_DASHBOARD_VIZ}
 
-For the Manual Smoke Test, launch via `make dashboard`. Students should see active chart titles, a moving volume series, readable score bands, and ranked field failures — not undecodable axis junk. Keep terminal output showing Streamlit is reading pipeline artifacts.
+For the Manual Smoke Test, launch via `make dashboard`. Students should see active chart titles, a moving volume series, a late-flag % series, and ranked field failures. Keep terminal output showing Streamlit is reading pipeline artifacts.
 
 {_PLAN_MD_SHAPE}
 
@@ -452,8 +452,8 @@ We're implementing Stage 5 of the DashBite pipeline (ML / Model Pulse dashboard)
 
 Inspect the repository and read docs/plan.md first (focus on this stage's section; earlier stages are context). Treat it as the architecture and behavior handoff from the planning agent — including the Manual Smoke Test.
 
-Build tested helpers (sample volume, volume-over-time, score summary, score histogram with labels like `0.0–0.1`) and a claim-first Model Pulse page:
-- few KPIs; hero volume-over-time (recent window); readable score bands with a 0.5 cue; ranked horizontal field-failure bars; no duplicate tables; no ops KPIs
+Build tested helpers (sample volume, volume-over-time, score summary, late-flag rate over time via order_id→timestamp join) and a claim-first Model Pulse page:
+- few KPIs; hero volume-over-time (recent window); % predicted_late over time (step/line); ranked horizontal field-failure bars; no duplicate tables; no ops KPIs
 - titles state findings; axes are human-readable; dashboards only read data/
 
 Keep the change scoped, add/update helper tests, and run them as you work.
@@ -461,76 +461,18 @@ Keep the change scoped, add/update helper tests, and run them as you work.
 When implementation is complete, do not overwrite docs/plan.md or earlier stage sections. Make sure this stage's Manual Smoke Test still matches the actual commands and behavior. If details changed, update only that stage's Manual Smoke Test section so it is runnable.
 """,
         test="""\
-Review the current Stage 5 ML dashboard as if this were a PR you did not author.
+Review the current Stage 5 ML dashboard as if this were a PR you did not author — final dashboard gate for the demo pipeline.
 
 Read docs/plan.md first (this stage's section) for intended behavior, architecture, automated tests, and Manual Smoke Test.
 
-Verify helpers and that Model Pulse meets the viz bar: active titles, readable score bands (no Interval axis junk), recent volume-over-time, ranked failures without a duplicate table, ~3 KPIs, UI only consumes artifacts. Strengthen helper tests, run the full suite, fix real issues.
+Verify helpers and that Model Pulse meets the viz bar: active titles, recent volume-over-time, late-flag % over time (not a score histogram), ranked failures without a duplicate table, ~3 KPIs, UI only consumes artifacts. Strengthen helper tests, run the full suite, fix real issues.
 
-Confirm the documented Manual Smoke Test (Streamlit launch + what to watch for) is still accurate. Sync this stage's section in docs/plan.md if commands changed — never wipe earlier stages.
-
-Summarize findings, changes, and suite status.
-""",
-    ),
-    StagePrompts(
-        number=6,
-        title="Business Dashboard",
-        teach="Ops Control: one business claim — dollars at risk — plus late rate; table is drill-down only.",
-        plan=f"""\
-Same underlying pipeline, different audience. Model Pulse should already exist; next is a simple Ops Control view beside it for someone watching delivery risk in dollars.
-
-Inspect the repository and append this stage's implementation plan to docs/plan.md (create the file if missing; never overwrite earlier stages).
-
-Include:
-- what we're changing
-- relevant files/interfaces
-- architectural constraints
-- automated test strategy
-- a manual smoke test I can run live from the terminal after implementation
-
-Non-negotiables:
-- helpers: late_rate from labeled features; at-risk order value (sum of order_value where predicted_late)
-- Ops Control UI:
-  - lead with the business claim (at-risk $) in an active title
-  - two primary metrics: at-risk value + late rate — don't reintroduce Model Pulse charts here
-  - recent predictions table is drill-down only (few columns, rounded scores) — not the main visual
-- keep Model Pulse intact and claim-first; dashboards still only read data/
-
-{_DASHBOARD_VIZ}
-
-For the Manual Smoke Test, launch or refresh with `make dashboard` and show the at-risk $ claim + late rate. Emphasize same pipeline outputs, different audience than Model Pulse.
-
-{_PLAN_MD_SHAPE}
-
-Do not implement the feature yet. Only update docs/plan.md (append this stage), then stop.
-""",
-        execute="""\
-We're implementing Stage 6 of the DashBite pipeline (business / Ops Control dashboard).
-
-Inspect the repository and read docs/plan.md first (focus on this stage's section; earlier stages are context). Treat it as the architecture and behavior handoff from the planning agent — including the Manual Smoke Test.
-
-Add late_rate and at-risk order value with an Ops Control view beside Model Pulse:
-- lead with dollars-at-risk as the claim; late rate beside it; predictions table as drill-down only
-- don't break Model Pulse's claim-first layout; dashboards read data/ only
-
-Keep the change scoped, add/update relevant tests, and run them as you work.
-
-When implementation is complete, do not overwrite docs/plan.md or earlier stage sections. Make sure this stage's Manual Smoke Test still matches the actual commands and behavior. If details changed, update only that stage's Manual Smoke Test section so it is runnable.
-""",
-        test="""\
-Review the current Stage 6 business dashboard as if this were a PR you did not author — final gate for the demo pipeline.
-
-Read docs/plan.md first (this stage's section) for intended behavior, architecture, automated tests, and Manual Smoke Test.
-
-Verify late_rate / at-risk helpers, Ops Control leads with the $ claim (table is secondary), Model Pulse still meets the viz bar, dashboards remain thin consumers. Strengthen coverage, run the full suite, fix real bugs.
-
-Confirm the documented Manual Smoke Test is still accurate and runnable. Sync this stage's section in docs/plan.md if commands changed — never wipe earlier stages. A short README note on running stages separately is a nice extra if missing.
+Confirm the documented Manual Smoke Test (Streamlit launch + what to watch for) is still accurate. Sync this stage's section in docs/plan.md if commands changed — never wipe earlier stages. A short README note on running stages separately is a nice extra if missing.
 
 Finish with a wrap-up of what you verified, what you changed, and whether the full suite passes.
 """,
-    ),
+    )
 )
-
 WRAP_UP_TITLE = "Wrap-up — Run the full stack"
 WRAP_UP_TEACH = (
     "After the stages are built: start every process as a persistent background job via Make."
@@ -546,7 +488,7 @@ I want:
 - `make stop` cleanly stops the whole stack
 - optional per-stage background targets are fine if they stay Make-friendly (e.g. document `make simulator` in foreground vs the background stack via `make run`)
 - default poll cadence is 15 seconds (`POLL_INTERVAL_SECONDS=15`); keep that as the classroom default
-- dashboard on :8501; remind me how to open Model Pulse and Ops Control
+- dashboard on :8501 (Model Pulse)
 
 Also append a short section to docs/plan.md (do not overwrite earlier stages) with a Manual Smoke Test for the full stack:
 - Terminal: `make run` (and where to watch logs)

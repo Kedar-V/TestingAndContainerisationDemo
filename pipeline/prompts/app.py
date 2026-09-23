@@ -151,7 +151,7 @@ def main() -> None:
         ("all", "All stages"),
         ("base", f"0′ — {BASE_PLAN_TITLE}"),
         *[ (f"stage-{s.number}", f"Stage {s.number} — {s.title}") for s in STAGES ],
-        ("wrap", f"7′ — {WRAP_UP_TITLE}"),
+        ("wrap", f"6′ — {WRAP_UP_TITLE}"),
         ("skill", "Take the workflow with you"),
     ]
     with st.sidebar:
@@ -259,7 +259,7 @@ def main() -> None:
 
     if _show("wrap"):
         with st.expander(
-            f"7′ — {WRAP_UP_TITLE}",
+            f"6′ — {WRAP_UP_TITLE}",
             expanded=expand_all or focus == "wrap",
         ):
             st.markdown(

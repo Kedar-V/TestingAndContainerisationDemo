@@ -606,7 +606,7 @@ def build() -> Path:
       if (data.wrap_up) {{
         entries.push({{
           id: "stage-wrap",
-          label: "7′ — " + data.wrap_up.title,
+          label: "6′ — " + data.wrap_up.title,
           meta: data.wrap_up.teach,
         }});
       }}
@@ -665,7 +665,7 @@ def build() -> Path:
       }}
       if (data.wrap_up) {{
         html += stageDetails(
-          "7′ — " + data.wrap_up.title,
+          "6′ — " + data.wrap_up.title,
           data.wrap_up.teach,
           promptBlock("End of demo — paste into a fresh chat", data.wrap_up.plan),
           openAll,

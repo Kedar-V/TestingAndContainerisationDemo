@@ -1,4 +1,4 @@
-"""Stage 5 — ML monitoring helpers (sample volume + score summary)."""
+"""Stage 5 — ML monitoring helpers (sample volume + late-flag rate)."""
 
 from __future__ import annotations
 
@@ -38,33 +38,55 @@ def volume_over_time(
     return series.to_frame()
 
 
-def score_histogram(predictions: pd.DataFrame, n_bins: int = 10) -> pd.DataFrame:
-    """Late-probability counts with human-readable bin labels (e.g. 0.0–0.1)."""
-    empty = pd.DataFrame(columns=["score_band", "orders"])
+def late_flag_rate_over_time(
+    predictions: pd.DataFrame,
+    features: pd.DataFrame,
+    freq: str = "min",
+    recent_minutes: int | None = 60,
+) -> pd.DataFrame:
+    """Share of orders flagged ``predicted_late`` per time bucket.
+
+    Joins predictions to feature timestamps via ``order_id``. Returns a
+    DataFrame indexed by time with ``late_flag_rate`` in ``[0, 1]``.
+    """
+    empty = pd.DataFrame(columns=["late_flag_rate"])
     if (
         predictions is None
         or predictions.empty
-        or "late_probability" not in predictions.columns
+        or features is None
+        or features.empty
+        or "predicted_late" not in predictions.columns
+        or "order_id" not in predictions.columns
+        or "order_id" not in features.columns
+        or "timestamp" not in features.columns
     ):
         return empty
-    probs = predictions["late_probability"].astype(float).clip(0.0, 1.0)
-    edges = [i / n_bins for i in range(n_bins + 1)]
-    labels = [f"{edges[i]:.1f}–{edges[i + 1]:.1f}" for i in range(n_bins)]
-    bands = pd.cut(
-        probs,
-        bins=edges,
-        labels=labels,
-        include_lowest=True,
-        right=True,
+
+    preds = predictions.loc[:, ["order_id", "predicted_late"]].copy()
+    feats = features.loc[:, ["order_id", "timestamp"]].copy()
+    preds["order_id"] = preds["order_id"].astype(str)
+    feats["order_id"] = feats["order_id"].astype(str)
+    merged = preds.merge(feats, on="order_id", how="inner")
+    if merged.empty:
+        return empty
+
+    ts = pd.to_datetime(merged["timestamp"], utc=True, errors="coerce")
+    merged = merged.loc[ts.notna()].copy()
+    if merged.empty:
+        return empty
+    merged["_minute"] = ts.dropna().dt.floor(freq)
+    merged["predicted_late"] = merged["predicted_late"].astype(int)
+    rates = merged.groupby("_minute", sort=True)["predicted_late"].mean().rename(
+        "late_flag_rate"
     )
-    counts = bands.value_counts().reindex(labels, fill_value=0)
-    return pd.DataFrame(
-        {"score_band": counts.index.astype(str), "orders": counts.to_numpy(dtype=int)}
-    )
+    if recent_minutes is not None and len(rates) > 0:
+        cutoff = rates.index.max() - pd.Timedelta(minutes=recent_minutes)
+        rates = rates.loc[rates.index >= cutoff]
+    return rates.to_frame()
 
 
 def score_summary(predictions: pd.DataFrame) -> dict:
-    """Simple summary of late_probability distribution."""
+    """Simple summary of late_probability / predicted_late outputs."""
     if predictions is None or predictions.empty or "late_probability" not in predictions.columns:
         return {
             "count": 0,
